@@ -25,9 +25,24 @@ test("教程类被硬否决", () => {
 });
 
 test("连续剧集标题只到中置信，不自动隐藏", () => {
-  const result = core.scoreCard({ name: "六翼动漫", title: "狼皇归来 再起风云 第5集" });
+  const result = core.scoreCard({ name: "某频道", title: "狼皇归来 再起风云 第5集" });
   assert.equal(result.confidence, "medium");
   assert.equal(result.score, 3);
+});
+
+test("动漫类账号名 + 剧集推到高置信", () => {
+  const result = core.scoreCard({ name: "太白雪动漫", title: "《天师》第1-4季" });
+  assert.equal(result.confidence, "high");
+});
+
+test("解析/指南等词不再无条件否决", () => {
+  const result = core.scoreCard({ name: "某频道", title: "【1-4季】末世选择从解析神明开始成神" });
+  assert.equal(result.vetoed, false);
+});
+
+test("AI 技术解析类教程仍被否决", () => {
+  const result = core.scoreCard({ name: "某频道", title: "AI视频技术解析：从零开始" });
+  assert.equal(result.vetoed, true);
 });
 
 test("标签 AI影视片场 + 体裁判高置信", () => {
@@ -86,7 +101,8 @@ test("账号名含「漫馆」按赛道账号处理", () => {
 
 test("解说/剪辑类账号被负向压回", () => {
   const result = core.scoreCard({ name: "某剧场", title: "第1集 解说" });
-  assert.ok(result.score < 2);
+  assert.ok(result.score < 4);
+  assert.equal(result.confidence, "medium");
 });
 
 test("parseList 接受合法名单", () => {

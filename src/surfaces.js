@@ -100,6 +100,9 @@
       if (!card) return null;
       return card.closest(".feed-card") || card;
     },
+    ignored: function (element) {
+      return !!(element && element.closest && element.closest(".head-cards"));
+    },
     read: readCard
   };
 

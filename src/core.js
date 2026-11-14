@@ -30,13 +30,17 @@
     tag: /^(?:AIGC|AI|人工智能|生成式|B站AI影视片场)$|AI\s*(?:动画|漫剧|短剧|视频|影视|作品|生成|片场)/i,
     genre: /漫剧|短剧|剧场|合集|一口气看完|第\s*[0-9０-９一二三四五六七八九十百]+\s*[集话]/,
     nameGenre: /剧场|短剧|漫剧|漫馆|制片厂|追漫|影业|好剧|番剧局|小剧场|漫剪|漫动画/,
+    nameWeak: /动漫|漫画|说漫|看剧|看漫|推剧|放映厅|听书|漫社|漫城|漫听|漫梗|国漫/,
     serial:
-      /第\s*[\d一二三四五六七八九十百]+\s*[集话季]|[\d一二三四五六七八九十]+\s*[-–—]\s*[\d一二三四五六七八九十]+\s*集|完整版|全集|成片|合集|第[一二三四五六七八九十\d]+季|一口气(?:看完|畅享)|大结局|超前(?:试看|点映)|独家限免/,
+      /(?:第\s*)?[\d一二三四五六七八九十百]+\s*(?:[-–—~～+＋至]\s*[\d一二三四五六七八九十百]+\s*)?[季集话]|EP\s*\d+|完整版|全集|荃集|成片|合集|大合集|大结局|一口气(?:看完|畅享|爽看|追完)|已完结|完结|超前(?:试看|点映)|独家限免|抢先(?:看|版)?|未删减|无删减|超清|勉费|免废/,
     tagGenre: /漫剧|短剧|动态漫|仿真人|AI真人|AI原创|AIGC|沙雕漫|2D漫|爆款短剧|热门漫剧|一口气看完漫剧|短剧推荐|短剧上新|AI动画|AI视频/i,
     signGenre: /漫剧|短剧|剧场|漫馆|每日更新|追更|充电|官方账号/,
-    trope: /重生|穿越|逆袭|总裁|弃子|修仙|系统|师尊|复仇|千金|退婚|契约|闪婚|王妃|赘婿|战神|神医|龙王|真假千金|虐渣|团宠|爽文|男频|女频|首富|下山/,
-    official: /^(哔哩哔哩|腾讯视频|爱奇艺|优酷|芒果TV|央视|新华社|人民日报|CCTV)/,
-    veto: /教程|教学|测评|评测|指南|入门|实战|解析|原理|技术|工具|软件|插件|脚本|编程|代码|开发|部署|接口|API|模型|微调|LoRA|工作流|ComfyUI|Stable\s*Diffusion|SDXL|Midjourney|可灵|即梦|海螺|Runway|Sora|Pika|豆包|通义|文心|混元|大模型|AI\s*绘画|AI\s*配音|开源|论文/i,
+    trope: /重生|穿越|逆袭|总裁|弃子|修仙|系统|师尊|复仇|千金|退婚|契约|闪婚|王妃|赘婿|战神|神医|龙王|真假千金|虐渣|团宠|爽文|男频|女频|首富|下山|反派|女主|男主|病娇|觉醒|异能|末世|末日|穿书|马甲|豪门|夫人|小姐|王爷|皇帝|太子|神豪|废土|丧尸|求生|绑定/,
+    official: /^(哔哩哔哩|腾讯视频|腾讯动漫|爱奇艺|爱奇艺动漫|优酷|优酷动漫|芒果TV|芒果动漫|快看漫画|央视|新华社|人民日报|CCTV)/,
+    vetoStrong:
+      /教程|教学|测评|评测|入门到|从零|实战|工具|软件|插件|脚本|编程|代码|部署|接口|API|工作流|ComfyUI|Stable\s*Diffusion|SDXL|Midjourney|可灵|即梦|海螺|Runway|Sora|Pika|豆包|通义|文心|混元|大模型|AI\s*绘画|AI\s*配音|开源|论文/i,
+    vetoTech: /解析|原理|技术|模型|指南|微调|LoRA/,
+    aiContext: /AIGC|AI|人工智能|生成式|生成/i,
     negative: /影视解说|解说|影评|拉片|盘点|混剪|reaction|直播回放|复盘|速讲|讲解|剪辑/i
   };
 
@@ -69,7 +73,12 @@
       return { score: 0, confidence: "none", vetoed: false, reasons: ["官方账号白名单"] };
     }
 
-    var vetoHit = (title.match(RE.veto) || [])[0] || (name.match(RE.veto) || [])[0];
+    var aiContext = RE.aiContext.test(title + " " + name);
+    var vetoHit =
+      (title.match(RE.vetoStrong) || [])[0] ||
+      (name.match(RE.vetoStrong) || [])[0] ||
+      (aiContext &&
+        ((title.match(RE.vetoTech) || [])[0] || (name.match(RE.vetoTech) || [])[0]));
     if (vetoHit) {
       return { score: 0, confidence: "none", vetoed: true, reasons: ["否决:" + vetoHit] };
     }
@@ -83,10 +92,12 @@
           return RE.tagGenre.test(tag);
         });
     var nameGenre = RE.nameGenre.test(name);
+    var nameWeak = !nameGenre && RE.nameWeak.test(name);
     var serial = RE.serial.test(title);
     var trope = RE.trope.test(title);
+    var longTitle = title.replace(/\s+/g, "").length >= 24;
     var signGenre = !!sign && !RE.sign.test(sign) && RE.signGenre.test(sign);
-    var genreSignal = nameGenre || serial || !!tagGenre || trope;
+    var genreSignal = nameGenre || nameWeak || serial || !!tagGenre || trope;
     var recap = RE.negative.test(title) || (!!sign && RE.negative.test(sign));
 
     var score = 0;
@@ -113,8 +124,12 @@
 
     if (genreMode) {
       if (nameGenre) {
-        score += 2;
+        score += 3;
         reasons.push("账号名为剧场/短剧/漫剧类");
+      }
+      if (nameWeak) {
+        score += 2;
+        reasons.push("账号名为动漫/说漫类");
       }
       if (serial) {
         score += 2;
@@ -127,6 +142,10 @@
       if (trope) {
         score += 1;
         reasons.push("标题含短剧题材");
+      }
+      if (longTitle && (nameGenre || nameWeak || serial || trope)) {
+        score += 1;
+        reasons.push("长剧情标题");
       }
       if (signGenre) {
         score += 1;

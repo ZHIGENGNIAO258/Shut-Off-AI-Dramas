@@ -119,7 +119,7 @@
   }
 
   function scheduleTagEnrich(record) {
-    if (surface.id !== "search" || !record.bvid || record.tagsTried || !store.settings().enrich) return;
+    if (!record.bvid || record.tagsTried || !store.settings().enrich) return;
     if (store.getTagsCache(record.bvid) || !enricher.canUse()) return;
     record.tagsTried = true;
     enricher
@@ -191,13 +191,16 @@
     if (allowEnrich && !sign && result.confidence !== "high") {
       scheduleEnrich(record);
     }
-    if (allowEnrich && surface.id === "search" && result.confidence === "medium") {
+    if (allowEnrich && result.confidence === "medium") {
       scheduleTagEnrich(record);
     }
   }
 
-  function processCard(wrapper) {
+  function processCard(candidate) {
+    if (!candidate) return;
+    var wrapper = (surface.wrapperOf && surface.wrapperOf(candidate)) || candidate;
     if (!wrapper || records.has(wrapper)) return;
+    if (surface.ignored && surface.ignored(wrapper)) return;
     var record = surface.read(wrapper);
     if (!record) return;
     record.at = Date.now();
