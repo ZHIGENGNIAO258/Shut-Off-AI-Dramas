@@ -20,9 +20,11 @@
 
   function readCard(wrapper) {
     if (!wrapper || typeof wrapper.querySelector !== "function") return null;
-    var card = wrapper.querySelector(".bili-video-card");
+    var card = wrapper.querySelector(".bili-video-card") || wrapper.querySelector(".video-card");
     if (!card) {
-      var hasClass = wrapper.classList && wrapper.classList.contains("bili-video-card");
+      var hasClass =
+        wrapper.classList &&
+        (wrapper.classList.contains("bili-video-card") || wrapper.classList.contains("video-card"));
       if (hasClass) card = wrapper;
     }
     if (!card) return null;
@@ -35,12 +37,16 @@
     if (!Number.isSafeInteger(mid) || mid <= 0) return null;
 
     var nameEl =
-      card.querySelector(".bili-video-card__info--author") || card.querySelector(".bili-video-card__author");
+      card.querySelector(".bili-video-card__info--author") ||
+      card.querySelector(".bili-video-card__author") ||
+      card.querySelector('[class*="__author"]');
     var name = cleanName(elementText(nameEl));
     if (!name) name = cleanName(elementText(owner.querySelector("span")));
 
     var titleEl =
-      card.querySelector(".bili-video-card__info--tit") || card.querySelector(".bili-video-card__title");
+      card.querySelector(".bili-video-card__info--tit") ||
+      card.querySelector(".bili-video-card__title") ||
+      card.querySelector('[class*="__tit"]');
     var videoLink = card.querySelector('a[href*="/video/BV"]');
     var bvidMatch = attr(videoLink, "href").match(/BV[0-9A-Za-z]+/);
     var title = elementText(titleEl) || attr(videoLink, "title") || attr(titleEl, "title");
@@ -81,7 +87,7 @@
     match: function (location) {
       return location && location.hostname === "www.bilibili.com" && /^\/c\/douga\/?$/.test(location.pathname);
     },
-    cardSelector: ".bili-video-card",
+    cardSelector: ".bili-video-card, .video-card",
     getCards: function (root) {
       return Array.prototype.slice.call(root.querySelectorAll(this.cardSelector)).filter(function (el) {
         // 顶部 head-cards 是轮播，跳过以免破坏轮播布局
@@ -90,7 +96,7 @@
     },
     wrapperOf: function (target) {
       if (!target || typeof target.closest !== "function") return null;
-      var card = target.closest(".bili-video-card");
+      var card = target.closest(".bili-video-card, .video-card");
       if (!card) return null;
       return card.closest(".feed-card") || card;
     },

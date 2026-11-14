@@ -42,8 +42,7 @@ test("动画分区（/c/douga/）适配：识别标题、UP 名并去掉日期�
   assert.equal(surface.wrapperOf(cards[0].querySelector(".bili-video-card__title")), cards[0]);
 });
 
-test("动画分区顶部 head-cards 轮播不处理", () => {
-  const dom = page(
+test("动画分区顶部 head-cards 轮播不处理", () => {  const dom = page(
     `<div class="head-cards">
       <div class="feed-card head-card">
         <div class="bili-video-card">

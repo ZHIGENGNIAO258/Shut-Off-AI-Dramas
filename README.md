@@ -128,7 +128,7 @@ https://raw.githubusercontent.com/ZHIGENGNIAO258/Shut-Off-AI-Dramas/main/dist/sh
 
 ```bash
 npm install
-npm test          # 规则 + 存储 + jsdom 适配 + 构建产物集成测试（41 项）
+npm test          # 规则 + 存储 + jsdom 适配 + 构建产物集成测试（42 项）
 npm run build     # 生成 dist/shut-off-ai-dramas.user.js
 npm run verify    # 测试 + 构建 + 名单校验
 npm run demo      # 生成 docs/demo.html 界面预览（模拟卡片，无真实数据）
