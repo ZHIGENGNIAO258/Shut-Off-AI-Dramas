@@ -5,3 +5,5 @@ import "./douga.test.mjs";
 import "./douga-video-card.test.mjs";
 import "./douga-integration.test.mjs";
 import "./integration.test.mjs";
+import "./list-ui.test.mjs";
+import "./remote-list.test.mjs";

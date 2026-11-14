@@ -19,6 +19,19 @@
     var getValue = opts.getValue;
     var setValue = opts.setValue;
     var data = core.normalizeData(safeParse(getValue(key)));
+    applyDefaultListUrl();
+
+    // 老版本把 listUrl 存成空串：只在第一次升级时填默认仓库地址，
+    // 之后用户手动清空就保持清空，不再反复写回。
+    function applyDefaultListUrl() {
+      if (!data.meta) data.meta = { listVersion: "", lastSync: 0 };
+      if (data.meta.defaultListApplied) return;
+      if (!data.settings.listUrl && core.DEFAULT_LIST_URL) {
+        data.settings.listUrl = core.DEFAULT_LIST_URL;
+      }
+      data.meta.defaultListApplied = true;
+      save();
+    }
 
     function safeParse(raw) {
       if (raw == null) return null;
@@ -239,10 +252,15 @@
     }
 
     function applyRemote(entries, includeAuto) {
-      var added = applyImport(entries, includeAuto);
+      var merged = core.mergeAccounts(data.accounts, entries, {
+        includeAuto: !!includeAuto,
+        tombstones: data.tombstones
+      });
+      data.accounts = merged.accounts;
       data.meta.lastSync = now();
+      data.meta.lastSyncCount = (entries || []).length;
       save();
-      return added;
+      return { added: merged.added.length, upgraded: (merged.upgraded || []).length };
     }
 
     function counts() {

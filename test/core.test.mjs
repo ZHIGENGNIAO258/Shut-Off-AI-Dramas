@@ -187,6 +187,23 @@ test("mergeAccounts 跳过已存在、墓碑与自动条目", () => {
   assert.equal(core.mergeAccounts({}, [{ ...entry, confidence: "auto" }], {}).added.length, 0);
 });
 
+test("mergeAccounts 把待确认的自动账号转正，但不覆盖本地人工记录", () => {
+  const entry = { mid: 20, name: "x", confidence: "confirmed", evidence: ["标签:AI"], samples: ["样本标题"] };
+  const pending = { 20: { name: "x", status: "pending", confidence: "auto", reasons: [], samples: [] } };
+  const merged = core.mergeAccounts(pending, [entry], {});
+  assert.equal(merged.added.length, 0);
+  assert.deepEqual(merged.upgraded, [20]);
+  assert.equal(merged.accounts[20].status, "hidden");
+  assert.equal(merged.accounts[20].confidence, "confirmed");
+  assert.deepEqual(merged.accounts[20].reasons, ["标签:AI"]);
+  assert.deepEqual(merged.accounts[20].samples, ["样本标题"]);
+
+  const manual = { 21: { name: "y", status: "hidden", confidence: "manual", reasons: ["手动标记"], samples: [] } };
+  const untouched = core.mergeAccounts(manual, [{ ...entry, mid: 21 }], {});
+  assert.equal(untouched.upgraded.length, 0);
+  assert.deepEqual(untouched.accounts[21].reasons, ["手动标记"]);
+});
+
 test("normalizeData 丢弃脏数据并生成默认设置", () => {
   const data = core.normalizeData({
     settings: { autoHideHigh: false, bogus: true, listUrl: 123 },
@@ -200,7 +217,7 @@ test("normalizeData 丢弃脏数据并生成默认设置", () => {
   });
   assert.equal(data.settings.autoHideHigh, false);
   assert.equal(data.settings.mediumBadge, true);
-  assert.equal(data.settings.listUrl, "");
+  assert.equal(data.settings.listUrl, core.DEFAULT_LIST_URL);
   assert.ok(data.accounts[123]);
   assert.equal(data.accounts.bad, undefined);
   assert.equal(data.accounts[-1], undefined);

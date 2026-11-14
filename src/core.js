@@ -12,6 +12,7 @@
   var MAX_ENTRIES = 10000;
   var TOMBSTONE_TTL = 30 * 24 * 60 * 60 * 1000;
   var DAY = 24 * 60 * 60 * 1000;
+  var DEFAULT_LIST_URL = "https://raw.githubusercontent.com/ZHIGENGNIAO258/Shut-Off-AI-Dramas/main/list/ai-slop.json";
 
   var DEFAULTS = {
     autoHideHigh: true,
@@ -20,7 +21,7 @@
     enrich: true,
     remoteList: true,
     genreMode: true,
-    listUrl: ""
+    listUrl: DEFAULT_LIST_URL
   };
 
   var RE = {
@@ -180,7 +181,7 @@
       whitelist: {},
       tombstones: {},
       cache: { sign: {}, tags: {} },
-      meta: { listVersion: "", lastSync: 0 }
+      meta: { listVersion: "", lastSync: 0, lastSyncCount: 0, defaultListApplied: false }
     };
   }
 
@@ -309,7 +310,9 @@
       cache: normalizeCache(data.cache),
       meta: {
         listVersion: data.meta && typeof data.meta.listVersion === "string" ? data.meta.listVersion.slice(0, 80) : "",
-        lastSync: asInt(data.meta && data.meta.lastSync, 0)
+        lastSync: asInt(data.meta && data.meta.lastSync, 0),
+        lastSyncCount: asInt(data.meta && data.meta.lastSyncCount, 0),
+        defaultListApplied: !!(data.meta && data.meta.defaultListApplied)
       }
     };
   }
@@ -397,11 +400,34 @@
       result[key] = local[key];
     });
     var added = [];
+    var upgraded = [];
+
+    function mergeList(current, extra, limit) {
+      var out = Array.isArray(current) ? current.slice() : [];
+      (extra || []).forEach(function (item) {
+        if (typeof item !== "string" || !item) return;
+        if (out.indexOf(item) === -1 && out.length < limit) out.push(item.slice(0, 160));
+      });
+      return out;
+    }
+
     (remoteEntries || []).forEach(function (entry) {
       if (!includeAuto && entry.confidence !== "confirmed") return;
-      if (result[entry.mid]) return;
       var tombstone = tombstones[entry.mid];
       if (tombstone && now - tombstone < TOMBSTONE_TTL) return;
+      var existing = result[entry.mid];
+      if (existing) {
+        // 本地已有：只在「自动识别/待确认」时升级为隐藏，绝不覆盖人工记录或删除本地条目
+        if (entry.confidence === "confirmed" && existing.confidence === "auto" && existing.status !== "hidden") {
+          existing.status = "hidden";
+          existing.confidence = "confirmed";
+          existing.reasons = mergeList(existing.reasons, entry.evidence, 5);
+          existing.samples = mergeList(existing.samples, entry.samples, 5);
+          existing.lastSeen = now;
+          upgraded.push(entry.mid);
+        }
+        return;
+      }
       result[entry.mid] = {
         name: entry.name,
         status: "hidden",
@@ -415,7 +441,7 @@
       };
       added.push(entry.mid);
     });
-    return { accounts: result, added: added };
+    return { accounts: result, added: added, upgraded: upgraded };
   }
 
   function shouldHideAccount(account) {
@@ -430,6 +456,7 @@
     TOMBSTONE_TTL: TOMBSTONE_TTL,
     DAY: DAY,
     DEFAULTS: DEFAULTS,
+    DEFAULT_LIST_URL: DEFAULT_LIST_URL,
     RE: RE,
     scoreCard: scoreCard,
     emptyData: emptyData,

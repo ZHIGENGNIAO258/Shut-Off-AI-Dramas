@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         B 站 AI 漫剧屏蔽器
 // @namespace    https://github.com/ZHIGENGNIAO258/Shut-Off-AI-Dramas
-// @version      0.4.1
+// @version      0.5.0
 // @description  按账号名单与规则隐藏 B 站首页 / 搜索 / 动画分区里的 AI 漫剧卡片，名单可导出分享
 // @author       ZHIGENGNIAO258
 // @license      MIT
@@ -20,7 +20,7 @@
 // ==/UserScript==
 (function () {
   "use strict";
-  globalThis.AIS_CSS = "/* B 站 AI 漫剧屏蔽器 · 界面样式（全部限定在 ais- 前缀内） */\n\n.ais-hidden {\n  display: none !important;\n}\n\n.ais-placeholder {\n  position: relative;\n  display: flex !important;\n  align-items: center;\n  justify-content: center;\n  min-height: 90px;\n  border: 1px dashed #fb7299;\n  border-radius: 8px;\n  background: #fff5f8;\n}\n\n.ais-placeholder > * {\n  display: none !important;\n}\n\n.ais-placeholder::before {\n  content: \"已屏蔽 · AI 漫剧\";\n  color: #fb7299;\n  font-size: 13px;\n}\n\n.ais-suspect {\n  position: relative;\n  outline: 2px dashed #fb7299;\n  outline-offset: -2px;\n}\n\n.ais-suspect::after {\n  content: \"?\";\n  position: absolute;\n  top: 6px;\n  right: 6px;\n  z-index: 20;\n  width: 18px;\n  height: 18px;\n  line-height: 18px;\n  text-align: center;\n  border-radius: 50%;\n  background: #fb7299;\n  color: #fff;\n  font-size: 12px;\n  font-weight: 700;\n  pointer-events: none;\n}\n\n.ais-marking .feed-card:hover,\n.ais-marking .video-list > div:hover {\n  outline: 2px solid #00aeec;\n  cursor: crosshair;\n}\n\n.ais-flash {\n  animation: ais-flash 0.9s ease;\n}\n\n@keyframes ais-flash {\n  0% {\n    box-shadow: 0 0 0 0 rgba(0, 174, 236, 0.8);\n  }\n  100% {\n    box-shadow: 0 0 0 12px rgba(0, 174, 236, 0);\n  }\n}\n\n/* 悬浮球 */\n.ais-fab {\n  position: fixed;\n  right: 20px;\n  bottom: 20px;\n  z-index: 2147483000;\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  padding: 8px 12px;\n  border: 0;\n  border-radius: 999px;\n  background: #fb7299;\n  color: #fff;\n  font: 600 13px/1.2 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  box-shadow: 0 6px 20px rgba(251, 114, 153, 0.4);\n  cursor: pointer;\n}\n\n.ais-fab:hover {\n  filter: brightness(1.05);\n}\n\n.ais-fab-hot {\n  background: #d94f7a;\n}\n\n.ais-fab-dot {\n  display: inline-block;\n  padding: 1px 4px;\n  border-radius: 4px;\n  background: rgba(255, 255, 255, 0.22);\n  font-size: 11px;\n}\n\n.ais-fab-count {\n  min-width: 16px;\n  text-align: center;\n}\n\n/* 面板 */\n.ais-panel {\n  position: fixed;\n  right: 20px;\n  bottom: 72px;\n  z-index: 2147483000;\n  display: flex;\n  flex-direction: column;\n  width: 380px;\n  max-width: calc(100vw - 32px);\n  max-height: min(72vh, 640px);\n  border-radius: 14px;\n  background: #fff;\n  color: #18191c;\n  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);\n  font: 13px/1.5 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  overflow: hidden;\n}\n\n.ais-panel[hidden],\n.ais-hover[hidden],\n.ais-modal[hidden],\n.ais-toast[hidden] {\n  display: none !important;\n}\n\n.ais-panel-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 12px 14px;\n  border-bottom: 1px solid #f1f2f3;\n}\n\n.ais-icon-btn {\n  border: 0;\n  background: transparent;\n  color: #9499a0;\n  font-size: 18px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.ais-tabs {\n  display: flex;\n  gap: 4px;\n  padding: 8px 10px;\n  border-bottom: 1px solid #f1f2f3;\n  background: #fafafa;\n}\n\n.ais-tab {\n  flex: 1;\n  padding: 6px 0;\n  border: 0;\n  border-radius: 8px;\n  background: transparent;\n  color: #61666d;\n  font: inherit;\n  cursor: pointer;\n}\n\n.ais-tab-active {\n  background: #fb7299;\n  color: #fff;\n}\n\n.ais-panel-body {\n  flex: 1;\n  padding: 12px 14px;\n  overflow: auto;\n}\n\n.ais-panel-foot {\n  padding: 8px 14px;\n  border-top: 1px solid #f1f2f3;\n  color: #9499a0;\n  font-size: 11px;\n}\n\n.ais-summary {\n  margin-bottom: 10px;\n  color: #61666d;\n}\n\n.ais-summary-num {\n  color: #fb7299;\n  font-size: 22px;\n  font-weight: 700;\n}\n\n.ais-empty {\n  margin: 12px 0;\n  color: #9499a0;\n  font-size: 12px;\n  line-height: 1.7;\n}\n\n.ais-row {\n  display: flex;\n  align-items: flex-start;\n  justify-content: space-between;\n  gap: 10px;\n  padding: 9px 0;\n  border-bottom: 1px solid #f4f5f6;\n}\n\n.ais-row-main {\n  min-width: 0;\n}\n\n.ais-row-title {\n  overflow: hidden;\n  color: #18191c;\n  font-weight: 600;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.ais-row-sub {\n  margin-top: 2px;\n  color: #9499a0;\n  font-size: 11px;\n  word-break: break-all;\n}\n\n.ais-row-side {\n  display: flex;\n  flex: 0 0 auto;\n  gap: 6px;\n}\n\n.ais-btn {\n  padding: 5px 9px;\n  border: 1px solid #e3e5e7;\n  border-radius: 7px;\n  background: #fff;\n  color: #18191c;\n  font: inherit;\n  cursor: pointer;\n  white-space: nowrap;\n}\n\n.ais-btn:hover {\n  border-color: #fb7299;\n  color: #fb7299;\n}\n\n.ais-btn-primary {\n  border-color: #fb7299;\n  background: #fb7299;\n  color: #fff;\n}\n\n.ais-btn-primary:hover {\n  background: #e45f86;\n  color: #fff;\n}\n\n.ais-btn-wide {\n  width: 100%;\n  margin-bottom: 8px;\n}\n\n.ais-toolbar {\n  display: flex;\n  gap: 8px;\n  margin-bottom: 8px;\n}\n\n.ais-sync {\n  display: flex;\n  gap: 8px;\n  margin-bottom: 10px;\n}\n\n.ais-input {\n  flex: 1;\n  min-width: 0;\n  padding: 6px 8px;\n  border: 1px solid #e3e5e7;\n  border-radius: 7px;\n  font: inherit;\n}\n\n.ais-check {\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  padding: 8px 0;\n  border-bottom: 1px solid #f4f5f6;\n}\n\n.ais-check input {\n  margin-top: 3px;\n}\n\n.ais-check-note {\n  display: block;\n  color: #9499a0;\n  font-size: 11px;\n}\n\n/* 悬停工具条 */\n.ais-hover {\n  position: fixed;\n  z-index: 2147483001;\n  display: flex;\n  gap: 6px;\n  padding: 6px;\n  border-radius: 10px;\n  background: #18191c;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);\n}\n\n.ais-hover .ais-btn {\n  border-color: transparent;\n  background: #2b2d31;\n  color: #fff;\n  font-size: 12px;\n}\n\n.ais-hover .ais-btn:hover {\n  background: #fb7299;\n}\n\n.ais-hover .ais-btn-primary {\n  background: #fb7299;\n}\n\n/* 模态框 */\n.ais-modal {\n  position: fixed;\n  inset: 0;\n  z-index: 2147483002;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: rgba(0, 0, 0, 0.45);\n}\n\n.ais-modal-card {\n  width: 440px;\n  max-width: calc(100vw - 32px);\n  max-height: 80vh;\n  display: flex;\n  flex-direction: column;\n  border-radius: 14px;\n  background: #fff;\n  color: #18191c;\n  font: 13px/1.6 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  overflow: hidden;\n}\n\n.ais-modal-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 12px 16px;\n  border-bottom: 1px solid #f1f2f3;\n}\n\n.ais-modal-body {\n  flex: 1;\n  padding: 14px 16px;\n  overflow: auto;\n}\n\n.ais-modal-foot {\n  display: flex;\n  justify-content: flex-end;\n  gap: 8px;\n  padding: 12px 16px;\n  border-top: 1px solid #f1f2f3;\n}\n\n.ais-depth-line {\n  margin-bottom: 6px;\n  word-break: break-all;\n}\n\n/* Toast */\n.ais-toast {\n  position: fixed;\n  left: 50%;\n  bottom: 28px;\n  z-index: 2147483003;\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  padding: 9px 14px;\n  border-radius: 999px;\n  background: #18191c;\n  color: #fff;\n  font: 12px/1.4 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  transform: translateX(-50%);\n  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);\n}\n\n.ais-toast-btn {\n  border: 0;\n  background: transparent;\n  color: #fb7299;\n  font: inherit;\n  font-weight: 600;\n  cursor: pointer;\n}\n";
+  globalThis.AIS_CSS = "/* B 站 AI 漫剧屏蔽器 · 界面样式（全部限定在 ais- 前缀内） */\n\n.ais-hidden {\n  display: none !important;\n}\n\n.ais-placeholder {\n  position: relative;\n  display: flex !important;\n  align-items: center;\n  justify-content: center;\n  min-height: 90px;\n  border: 1px dashed #fb7299;\n  border-radius: 8px;\n  background: #fff5f8;\n}\n\n.ais-placeholder > * {\n  display: none !important;\n}\n\n.ais-placeholder::before {\n  content: \"已屏蔽 · AI 漫剧\";\n  color: #fb7299;\n  font-size: 13px;\n}\n\n.ais-suspect {\n  position: relative;\n  outline: 2px dashed #fb7299;\n  outline-offset: -2px;\n}\n\n.ais-suspect::after {\n  content: \"?\";\n  position: absolute;\n  top: 6px;\n  right: 6px;\n  z-index: 20;\n  width: 18px;\n  height: 18px;\n  line-height: 18px;\n  text-align: center;\n  border-radius: 50%;\n  background: #fb7299;\n  color: #fff;\n  font-size: 12px;\n  font-weight: 700;\n  pointer-events: none;\n}\n\n.ais-marking .feed-card:hover,\n.ais-marking .video-list > div:hover {\n  outline: 2px solid #00aeec;\n  cursor: crosshair;\n}\n\n.ais-flash {\n  animation: ais-flash 0.9s ease;\n}\n\n@keyframes ais-flash {\n  0% {\n    box-shadow: 0 0 0 0 rgba(0, 174, 236, 0.8);\n  }\n  100% {\n    box-shadow: 0 0 0 12px rgba(0, 174, 236, 0);\n  }\n}\n\n/* 悬浮球 */\n.ais-fab {\n  position: fixed;\n  right: 20px;\n  bottom: 20px;\n  z-index: 2147483000;\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  padding: 8px 12px;\n  border: 0;\n  border-radius: 999px;\n  background: #fb7299;\n  color: #fff;\n  font: 600 13px/1.2 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  box-shadow: 0 6px 20px rgba(251, 114, 153, 0.4);\n  cursor: pointer;\n}\n\n.ais-fab:hover {\n  filter: brightness(1.05);\n}\n\n.ais-fab-hot {\n  background: #d94f7a;\n}\n\n.ais-fab-dot {\n  display: inline-block;\n  padding: 1px 4px;\n  border-radius: 4px;\n  background: rgba(255, 255, 255, 0.22);\n  font-size: 11px;\n}\n\n.ais-fab-count {\n  min-width: 16px;\n  text-align: center;\n}\n\n/* 面板 */\n.ais-panel {\n  position: fixed;\n  right: 20px;\n  bottom: 72px;\n  z-index: 2147483000;\n  display: flex;\n  flex-direction: column;\n  width: 380px;\n  max-width: calc(100vw - 32px);\n  max-height: min(72vh, 640px);\n  border-radius: 14px;\n  background: #fff;\n  color: #18191c;\n  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);\n  font: 13px/1.5 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  overflow: hidden;\n}\n\n.ais-panel[hidden],\n.ais-hover[hidden],\n.ais-modal[hidden],\n.ais-toast[hidden] {\n  display: none !important;\n}\n\n.ais-panel-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 12px 14px;\n  border-bottom: 1px solid #f1f2f3;\n}\n\n.ais-icon-btn {\n  border: 0;\n  background: transparent;\n  color: #9499a0;\n  font-size: 18px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.ais-tabs {\n  display: flex;\n  gap: 4px;\n  padding: 8px 10px;\n  border-bottom: 1px solid #f1f2f3;\n  background: #fafafa;\n}\n\n.ais-tab {\n  flex: 1;\n  padding: 6px 0;\n  border: 0;\n  border-radius: 8px;\n  background: transparent;\n  color: #61666d;\n  font: inherit;\n  cursor: pointer;\n}\n\n.ais-tab-active {\n  background: #fb7299;\n  color: #fff;\n}\n\n.ais-panel-body {\n  flex: 1;\n  padding: 12px 14px;\n  overflow: auto;\n}\n\n.ais-panel-foot {\n  padding: 8px 14px;\n  border-top: 1px solid #f1f2f3;\n  color: #9499a0;\n  font-size: 11px;\n}\n\n.ais-summary {\n  margin-bottom: 10px;\n  color: #61666d;\n}\n\n.ais-summary-num {\n  color: #fb7299;\n  font-size: 22px;\n  font-weight: 700;\n}\n\n.ais-empty {\n  margin: 12px 0;\n  color: #9499a0;\n  font-size: 12px;\n  line-height: 1.7;\n}\n\n.ais-row {\n  display: flex;\n  align-items: flex-start;\n  justify-content: space-between;\n  gap: 10px;\n  padding: 9px 0;\n  border-bottom: 1px solid #f4f5f6;\n}\n\n.ais-row-main {\n  min-width: 0;\n}\n\n.ais-row-title {\n  overflow: hidden;\n  color: #18191c;\n  font-weight: 600;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.ais-row-sub {\n  margin-top: 2px;\n  color: #9499a0;\n  font-size: 11px;\n  word-break: break-all;\n}\n\n.ais-row-side {\n  display: flex;\n  flex: 0 0 auto;\n  gap: 6px;\n}\n\n.ais-btn {\n  padding: 5px 9px;\n  border: 1px solid #e3e5e7;\n  border-radius: 7px;\n  background: #fff;\n  color: #18191c;\n  font: inherit;\n  cursor: pointer;\n  white-space: nowrap;\n}\n\n.ais-btn:hover {\n  border-color: #fb7299;\n  color: #fb7299;\n}\n\n.ais-btn-primary {\n  border-color: #fb7299;\n  background: #fb7299;\n  color: #fff;\n}\n\n.ais-btn-primary:hover {\n  background: #e45f86;\n  color: #fff;\n}\n\n.ais-btn-wide {\n  width: 100%;\n  margin-bottom: 8px;\n}\n\n.ais-toolbar {\n  display: flex;\n  gap: 8px;\n  margin-bottom: 8px;\n}\n\n.ais-sync {\n  display: flex;\n  gap: 8px;\n  margin-bottom: 10px;\n}\n\n.ais-input {\n  flex: 1;\n  min-width: 0;\n  padding: 6px 8px;\n  border: 1px solid #e3e5e7;\n  border-radius: 7px;\n  font: inherit;\n}\n\n.ais-input-mid {\n  flex: 0 0 118px;\n}\n\n.ais-list-tools,\n.ais-add-row {\n  display: flex;\n  gap: 6px;\n  margin-bottom: 6px;\n}\n\n.ais-sync-meta {\n  margin: 0 0 8px;\n  color: #9499a0;\n  font-size: 11px;\n  line-height: 1.5;\n}\n\n.ais-row-samples {\n  margin-top: 3px;\n}\n\n.ais-list-rows {\n  margin-top: 4px;\n}\n\n.ais-sample {\n  overflow: hidden;\n  color: #61666d;\n  font-size: 11px;\n  line-height: 1.5;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.ais-pager {\n  position: sticky;\n  bottom: -12px;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  margin-top: 6px;\n  padding: 8px 0 6px;\n  background: #fff;\n}\n\n.ais-pager-info {\n  color: #9499a0;\n  font-size: 11px;\n}\n\n.ais-btn[disabled] {\n  opacity: 0.45;\n  cursor: default;\n}\n\n.ais-btn[disabled]:hover {\n  border-color: #e3e5e7;\n  color: #18191c;\n}\n\n.ais-check {\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  padding: 8px 0;\n  border-bottom: 1px solid #f4f5f6;\n}\n\n.ais-check input {\n  margin-top: 3px;\n}\n\n.ais-check-note {\n  display: block;\n  color: #9499a0;\n  font-size: 11px;\n}\n\n/* 悬停工具条 */\n.ais-hover {\n  position: fixed;\n  z-index: 2147483001;\n  display: flex;\n  gap: 6px;\n  padding: 6px;\n  border-radius: 10px;\n  background: #18191c;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);\n}\n\n.ais-hover .ais-btn {\n  border-color: transparent;\n  background: #2b2d31;\n  color: #fff;\n  font-size: 12px;\n}\n\n.ais-hover .ais-btn:hover {\n  background: #fb7299;\n}\n\n.ais-hover .ais-btn-primary {\n  background: #fb7299;\n}\n\n/* 模态框 */\n.ais-modal {\n  position: fixed;\n  inset: 0;\n  z-index: 2147483002;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: rgba(0, 0, 0, 0.45);\n}\n\n.ais-modal-card {\n  width: 440px;\n  max-width: calc(100vw - 32px);\n  max-height: 80vh;\n  display: flex;\n  flex-direction: column;\n  border-radius: 14px;\n  background: #fff;\n  color: #18191c;\n  font: 13px/1.6 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  overflow: hidden;\n}\n\n.ais-modal-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 12px 16px;\n  border-bottom: 1px solid #f1f2f3;\n}\n\n.ais-modal-body {\n  flex: 1;\n  padding: 14px 16px;\n  overflow: auto;\n}\n\n.ais-modal-foot {\n  display: flex;\n  justify-content: flex-end;\n  gap: 8px;\n  padding: 12px 16px;\n  border-top: 1px solid #f1f2f3;\n}\n\n.ais-depth-line {\n  margin-bottom: 6px;\n  word-break: break-all;\n}\n\n/* Toast */\n.ais-toast {\n  position: fixed;\n  left: 50%;\n  bottom: 28px;\n  z-index: 2147483003;\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  padding: 9px 14px;\n  border-radius: 999px;\n  background: #18191c;\n  color: #fff;\n  font: 12px/1.4 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  transform: translateX(-50%);\n  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);\n}\n\n.ais-toast-btn {\n  border: 0;\n  background: transparent;\n  color: #fb7299;\n  font: inherit;\n  font-weight: 600;\n  cursor: pointer;\n}\n";
 /* ---- src/core.js ---- */
 /* B 站 AI 漫剧屏蔽器 · 规则、名单校验与合并（纯函数，可单测） */
 (function (root, factory) {
@@ -36,6 +36,7 @@
   var MAX_ENTRIES = 10000;
   var TOMBSTONE_TTL = 30 * 24 * 60 * 60 * 1000;
   var DAY = 24 * 60 * 60 * 1000;
+  var DEFAULT_LIST_URL = "https://raw.githubusercontent.com/ZHIGENGNIAO258/Shut-Off-AI-Dramas/main/list/ai-slop.json";
 
   var DEFAULTS = {
     autoHideHigh: true,
@@ -44,7 +45,7 @@
     enrich: true,
     remoteList: true,
     genreMode: true,
-    listUrl: ""
+    listUrl: DEFAULT_LIST_URL
   };
 
   var RE = {
@@ -204,7 +205,7 @@
       whitelist: {},
       tombstones: {},
       cache: { sign: {}, tags: {} },
-      meta: { listVersion: "", lastSync: 0 }
+      meta: { listVersion: "", lastSync: 0, lastSyncCount: 0, defaultListApplied: false }
     };
   }
 
@@ -333,7 +334,9 @@
       cache: normalizeCache(data.cache),
       meta: {
         listVersion: data.meta && typeof data.meta.listVersion === "string" ? data.meta.listVersion.slice(0, 80) : "",
-        lastSync: asInt(data.meta && data.meta.lastSync, 0)
+        lastSync: asInt(data.meta && data.meta.lastSync, 0),
+        lastSyncCount: asInt(data.meta && data.meta.lastSyncCount, 0),
+        defaultListApplied: !!(data.meta && data.meta.defaultListApplied)
       }
     };
   }
@@ -421,11 +424,34 @@
       result[key] = local[key];
     });
     var added = [];
+    var upgraded = [];
+
+    function mergeList(current, extra, limit) {
+      var out = Array.isArray(current) ? current.slice() : [];
+      (extra || []).forEach(function (item) {
+        if (typeof item !== "string" || !item) return;
+        if (out.indexOf(item) === -1 && out.length < limit) out.push(item.slice(0, 160));
+      });
+      return out;
+    }
+
     (remoteEntries || []).forEach(function (entry) {
       if (!includeAuto && entry.confidence !== "confirmed") return;
-      if (result[entry.mid]) return;
       var tombstone = tombstones[entry.mid];
       if (tombstone && now - tombstone < TOMBSTONE_TTL) return;
+      var existing = result[entry.mid];
+      if (existing) {
+        // 本地已有：只在「自动识别/待确认」时升级为隐藏，绝不覆盖人工记录或删除本地条目
+        if (entry.confidence === "confirmed" && existing.confidence === "auto" && existing.status !== "hidden") {
+          existing.status = "hidden";
+          existing.confidence = "confirmed";
+          existing.reasons = mergeList(existing.reasons, entry.evidence, 5);
+          existing.samples = mergeList(existing.samples, entry.samples, 5);
+          existing.lastSeen = now;
+          upgraded.push(entry.mid);
+        }
+        return;
+      }
       result[entry.mid] = {
         name: entry.name,
         status: "hidden",
@@ -439,7 +465,7 @@
       };
       added.push(entry.mid);
     });
-    return { accounts: result, added: added };
+    return { accounts: result, added: added, upgraded: upgraded };
   }
 
   function shouldHideAccount(account) {
@@ -454,6 +480,7 @@
     TOMBSTONE_TTL: TOMBSTONE_TTL,
     DAY: DAY,
     DEFAULTS: DEFAULTS,
+    DEFAULT_LIST_URL: DEFAULT_LIST_URL,
     RE: RE,
     scoreCard: scoreCard,
     emptyData: emptyData,
@@ -783,6 +810,19 @@
     var getValue = opts.getValue;
     var setValue = opts.setValue;
     var data = core.normalizeData(safeParse(getValue(key)));
+    applyDefaultListUrl();
+
+    // 老版本把 listUrl 存成空串：只在第一次升级时填默认仓库地址，
+    // 之后用户手动清空就保持清空，不再反复写回。
+    function applyDefaultListUrl() {
+      if (!data.meta) data.meta = { listVersion: "", lastSync: 0 };
+      if (data.meta.defaultListApplied) return;
+      if (!data.settings.listUrl && core.DEFAULT_LIST_URL) {
+        data.settings.listUrl = core.DEFAULT_LIST_URL;
+      }
+      data.meta.defaultListApplied = true;
+      save();
+    }
 
     function safeParse(raw) {
       if (raw == null) return null;
@@ -1003,10 +1043,15 @@
     }
 
     function applyRemote(entries, includeAuto) {
-      var added = applyImport(entries, includeAuto);
+      var merged = core.mergeAccounts(data.accounts, entries, {
+        includeAuto: !!includeAuto,
+        tombstones: data.tombstones
+      });
+      data.accounts = merged.accounts;
       data.meta.lastSync = now();
+      data.meta.lastSyncCount = (entries || []).length;
       save();
-      return added;
+      return { added: merged.added.length, upgraded: (merged.upgraded || []).length };
     }
 
     function counts() {
@@ -1180,6 +1225,9 @@
     var toastTimer = null;
     var hoverTimer = null;
     var currentRecord = null;
+    var LIST_PAGE_SIZE = 30;
+    var listQuery = "";
+    var listPage = 0;
 
     function make(tag, className, text) {
       var el = doc.createElement(tag);
@@ -1352,11 +1400,25 @@
       return account && account.name ? account.name : "mid " + mid;
     }
 
-    function row(title, subtitle, buttons) {
+    function accountSamples(account) {
+      var samples = account && Array.isArray(account.samples) ? account.samples : [];
+      return samples.filter(function (item) {
+        return typeof item === "string" && item;
+      });
+    }
+
+    function row(title, subtitle, buttons, samples) {
       var wrap = make("div", "ais-row");
       var main = make("div", "ais-row-main");
       main.appendChild(make("div", "ais-row-title", title));
       if (subtitle) main.appendChild(make("div", "ais-row-sub", subtitle));
+      if (samples && samples.length) {
+        var sampleBox = make("div", "ais-row-samples");
+        samples.slice(0, 2).forEach(function (text) {
+          sampleBox.appendChild(make("div", "ais-sample", "《" + text + "》"));
+        });
+        main.appendChild(sampleBox);
+      }
       wrap.appendChild(main);
       if (buttons && buttons.length) {
         var side = make("div", "ais-row-side");
@@ -1462,28 +1524,93 @@
       );
       pending.forEach(function (mid) {
         var account = accounts[mid];
-        var subtitle = (account.reasons || []).join(" · ") + " · 命中 " + account.hits + " 次";
+        var reasons = (account.reasons || []).join(" · ");
+        var subtitle = "mid " + mid;
+        if (reasons) subtitle += " · " + reasons;
+        subtitle += " · 命中 " + account.hits + " 次";
         panelBody.appendChild(
-          row(accountName(account, mid), subtitle, [
-            button("确认", "ais-btn-primary", function () {
-              actions.confirm(Number(mid));
-              toast("已确认");
-            }),
-            button("误伤", "", function () {
-              actions.dismiss(Number(mid));
-              toast("已恢复并加入白名单");
-            })
-          ])
+          row(
+            accountName(account, mid),
+            subtitle,
+            [
+              button("确认", "ais-btn-primary", function () {
+                actions.confirm(Number(mid));
+                toast("已确认");
+              }),
+              button("误伤", "", function () {
+                actions.dismiss(Number(mid));
+                toast("已恢复并加入白名单");
+              })
+            ],
+            accountSamples(account)
+          )
         );
       });
+    }
+
+    function parseMid(value) {
+      var text = String(value || "").trim();
+      if (!text) return 0;
+      var match = text.match(/space\.bilibili\.com\/(\d{1,12})/i);
+      if (match) return parseInt(match[1], 10);
+      if (/^\d{1,12}$/.test(text)) return parseInt(text, 10);
+      return 0;
+    }
+
+    function hiddenEntries(query) {
+      var q = String(query || "").trim().toLowerCase();
+      var items = Object.keys(store.data.accounts)
+        .map(Number)
+        .filter(function (mid) {
+          var account = store.data.accounts[mid];
+          return !!account && account.status === "hidden";
+        })
+        .map(function (mid) {
+          var account = store.data.accounts[mid];
+          return { mid: mid, account: account, name: accountName(account, mid) };
+        });
+      if (q) {
+        items = items.filter(function (item) {
+          return item.name.toLowerCase().indexOf(q) !== -1 || String(item.mid).indexOf(q) !== -1;
+        });
+      }
+      items.sort(function (a, b) {
+        var byName = a.name.localeCompare(b.name, "zh-Hans-CN", { numeric: true, sensitivity: "base" });
+        return byName !== 0 ? byName : a.mid - b.mid;
+      });
+      return items;
+    }
+
+    function syncHint() {
+      var meta = store.data.meta || {};
+      if (!meta.lastSync) return "还没同步过。默认订阅仓库 list/ai-slop.json，只新增，不删除本地记录。";
+      var date = new Date(meta.lastSync);
+      var pad = function (value) {
+        return value < 10 ? "0" + value : String(value);
+      };
+      var when = date.getMonth() + 1 + "-" + pad(date.getDate()) + " " + pad(date.getHours()) + ":" + pad(date.getMinutes());
+      return "上次同步 " + when + (meta.lastSyncCount ? " · 拉取 " + meta.lastSyncCount + " 条" : "");
     }
 
     function renderList() {
       var counts = store.counts();
       var summary = make("div", "ais-summary");
       summary.appendChild(make("span", "ais-summary-num", String(counts.hidden)));
-      summary.appendChild(make("span", "", " 个账号在名单中"));
+      summary.appendChild(make("span", "", " 个账号在名单中（按名称排序）"));
       panelBody.appendChild(summary);
+
+      function doSync() {
+        actions.syncRemote().then(function (result) {
+          if (result && result.ok) {
+            var message = "同步完成：新增 " + result.added + " 个";
+            if (result.upgraded) message += "，待确认转正 " + result.upgraded + " 个";
+            if (result.total) message += "（共 " + result.total + " 条）";
+            toast(message);
+          } else {
+            toast("同步失败：" + ((result && result.error) || "未知错误"));
+          }
+        });
+      }
 
       var toolbar = make("div", "ais-toolbar");
       toolbar.appendChild(
@@ -1504,56 +1631,121 @@
         })
       );
       toolbar.appendChild(button("导入名单", "", chooseImportFile));
+      toolbar.appendChild(button("同步订阅", "", doSync));
       panelBody.appendChild(toolbar);
+
+      var searchRow = make("div", "ais-list-tools");
+      var searchInput = doc.createElement("input");
+      searchInput.type = "search";
+      searchInput.className = "ais-input";
+      searchInput.placeholder = "搜索昵称 / mid";
+      searchInput.value = listQuery;
+      searchRow.appendChild(searchInput);
+      panelBody.appendChild(searchRow);
+
+      var addRow = make("div", "ais-add-row");
+      var midInput = doc.createElement("input");
+      midInput.type = "text";
+      midInput.className = "ais-input ais-input-mid";
+      midInput.placeholder = "mid 或空间链接";
+      var nameInput = doc.createElement("input");
+      nameInput.type = "text";
+      nameInput.className = "ais-input";
+      nameInput.placeholder = "备注名（可选）";
+
+      function submitAdd() {
+        var mid = parseMid(midInput.value);
+        if (!mid) {
+          toast("请填写数字 mid 或 space.bilibili.com/123 链接");
+          return;
+        }
+        var name = nameInput.value.trim();
+        listQuery = "";
+        listPage = 0;
+        var result = actions.addManual(mid, name);
+        if (result && result.ok) toast("已添加 " + (name || "mid " + mid));
+        else toast((result && result.error) || "添加失败");
+      }
+
+      midInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") submitAdd();
+      });
+      nameInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") submitAdd();
+      });
+      addRow.appendChild(midInput);
+      addRow.appendChild(nameInput);
+      addRow.appendChild(button("添加", "ais-btn-primary", submitAdd));
+      panelBody.appendChild(addRow);
+
+      var rowsBox = make("div", "ais-list-rows");
+      var pagerBox = make("div", "ais-pager");
+      panelBody.appendChild(rowsBox);
+      panelBody.appendChild(pagerBox);
 
       var syncRow = make("div", "ais-sync");
       var urlInput = doc.createElement("input");
       urlInput.type = "url";
       urlInput.className = "ais-input";
-      urlInput.placeholder = "订阅地址（可选，raw.githubusercontent.com / jsDelivr）";
+      urlInput.placeholder = "订阅地址（raw.githubusercontent.com / jsDelivr）";
       urlInput.value = store.settings().listUrl || "";
       urlInput.addEventListener("change", function () {
         actions.saveSetting("listUrl", urlInput.value.trim());
       });
       syncRow.appendChild(urlInput);
       syncRow.appendChild(
-        button("同步", "", function () {
-          actions.syncRemote().then(function (result) {
-            if (result && result.ok) {
-              toast("同步完成，新增 " + result.added + " 个账号");
-            } else {
-              toast("同步失败：" + ((result && result.error) || "未知错误"));
-            }
-          });
-        })
+        button("同步", "", doSync)
       );
       panelBody.appendChild(syncRow);
+      panelBody.appendChild(make("p", "ais-sync-meta", syncHint()));
 
-      var keys = Object.keys(store.data.accounts)
-        .filter(function (mid) {
-          return store.data.accounts[mid].status === "hidden";
-        })
-        .map(Number)
-        .sort(function (a, b) {
-          return (store.data.accounts[b].lastSeen || 0) - (store.data.accounts[a].lastSeen || 0);
+      function paint() {
+        clear(rowsBox);
+        clear(pagerBox);
+        rowsBox.scrollTop = 0;
+        var items = hiddenEntries(listQuery);
+        if (!items.length) {
+          rowsBox.appendChild(
+            emptyHint(listQuery ? "没有匹配「" + listQuery + "」的账号。" : "名单还是空的。在卡片上点「屏蔽」，或在上方手动添加。")
+          );
+          return;
+        }
+        var pages = Math.max(1, Math.ceil(items.length / LIST_PAGE_SIZE));
+        if (listPage < 0) listPage = 0;
+        if (listPage > pages - 1) listPage = pages - 1;
+        items.slice(listPage * LIST_PAGE_SIZE, (listPage + 1) * LIST_PAGE_SIZE).forEach(function (item) {
+          var label = item.account.confidence === "auto" ? "自动" : item.account.source === "remote" ? "订阅" : "手动";
+          rowsBox.appendChild(
+            row(item.name, label + " · mid " + item.mid, [
+              button("移除", "", function () {
+                actions.dismiss(item.mid);
+                toast("已移除并加入白名单");
+              })
+            ])
+          );
         });
-      if (keys.length === 0) {
-        panelBody.appendChild(emptyHint("名单还是空的。在卡片上点「屏蔽这个 UP」即可加入。"));
-        return;
+        var prev = button("上一页", "", function () {
+          listPage -= 1;
+          paint();
+        });
+        prev.disabled = listPage === 0;
+        var next = button("下一页", "", function () {
+          listPage += 1;
+          paint();
+        });
+        next.disabled = listPage >= pages - 1;
+        pagerBox.appendChild(prev);
+        pagerBox.appendChild(make("span", "ais-pager-info", listPage + 1 + " / " + pages + " · 共 " + items.length + " 个"));
+        pagerBox.appendChild(next);
       }
-      keys.slice(0, 100).forEach(function (mid) {
-        var account = store.data.accounts[mid];
-        if (!account) return;
-        var label = account.confidence === "auto" ? "自动" : account.source === "remote" ? "订阅" : "手动";
-        panelBody.appendChild(
-          row(accountName(account, mid), label + " · mid " + mid, [
-            button("移除", "", function () {
-              actions.dismiss(mid);
-              toast("已移除并加入白名单");
-            })
-          ])
-        );
+
+      searchInput.addEventListener("input", function () {
+        listQuery = searchInput.value;
+        listPage = 0;
+        paint();
       });
+
+      paint();
     }
 
     function renderSettings() {
@@ -2101,6 +2293,16 @@
     if (ui) ui.refresh(true);
   }
 
+  function addManual(mid, name) {
+    if (!Number.isSafeInteger(mid) || mid <= 0) return { ok: false, error: "mid 不合法" };
+    if (store.getAccount(mid)) return { ok: false, error: "该账号已在名单或待确认中" };
+    store.unwhitelist(mid);
+    store.upsertManual(mid, { name: name || "", reason: "手动添加" });
+    applyMid(mid);
+    if (ui) ui.refresh(true);
+    return { ok: true };
+  }
+
   function saveSetting(name, value) {
     if (!store.setSetting(name, value)) return;
     if (name === "autoHideHigh" || name === "mediumBadge" || name === "showPlaceholder" || name === "genreMode") {
@@ -2140,10 +2342,10 @@
       .then(function (text) {
         var parsed = core.parseList(text);
         if (!parsed.ok) return { ok: false, error: parsed.error };
-        var added = store.applyRemote(parsed.entries, false);
+        var merged = store.applyRemote(parsed.entries, false);
         applyAll();
         if (ui) ui.refresh(true);
-        return { ok: true, added: added };
+        return { ok: true, added: merged.added, upgraded: merged.upgraded, total: parsed.entries.length };
       })
       .catch(function (error) {
         return { ok: false, error: error && error.message ? error.message : "网络错误" };
@@ -2173,6 +2375,7 @@
     exportList: exportList,
     previewImport: previewImport,
     applyImport: applyImport,
+    addManual: addManual,
     syncRemote: syncRemote
   };
 

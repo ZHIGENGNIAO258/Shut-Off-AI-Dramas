@@ -356,6 +356,16 @@
     if (ui) ui.refresh(true);
   }
 
+  function addManual(mid, name) {
+    if (!Number.isSafeInteger(mid) || mid <= 0) return { ok: false, error: "mid 不合法" };
+    if (store.getAccount(mid)) return { ok: false, error: "该账号已在名单或待确认中" };
+    store.unwhitelist(mid);
+    store.upsertManual(mid, { name: name || "", reason: "手动添加" });
+    applyMid(mid);
+    if (ui) ui.refresh(true);
+    return { ok: true };
+  }
+
   function saveSetting(name, value) {
     if (!store.setSetting(name, value)) return;
     if (name === "autoHideHigh" || name === "mediumBadge" || name === "showPlaceholder" || name === "genreMode") {
@@ -395,10 +405,10 @@
       .then(function (text) {
         var parsed = core.parseList(text);
         if (!parsed.ok) return { ok: false, error: parsed.error };
-        var added = store.applyRemote(parsed.entries, false);
+        var merged = store.applyRemote(parsed.entries, false);
         applyAll();
         if (ui) ui.refresh(true);
-        return { ok: true, added: added };
+        return { ok: true, added: merged.added, upgraded: merged.upgraded, total: parsed.entries.length };
       })
       .catch(function (error) {
         return { ok: false, error: error && error.message ? error.message : "网络错误" };
@@ -428,6 +438,7 @@
     exportList: exportList,
     previewImport: previewImport,
     applyImport: applyImport,
+    addManual: addManual,
     syncRemote: syncRemote
   };
 

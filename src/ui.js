@@ -18,6 +18,9 @@
     var toastTimer = null;
     var hoverTimer = null;
     var currentRecord = null;
+    var LIST_PAGE_SIZE = 30;
+    var listQuery = "";
+    var listPage = 0;
 
     function make(tag, className, text) {
       var el = doc.createElement(tag);
@@ -190,11 +193,25 @@
       return account && account.name ? account.name : "mid " + mid;
     }
 
-    function row(title, subtitle, buttons) {
+    function accountSamples(account) {
+      var samples = account && Array.isArray(account.samples) ? account.samples : [];
+      return samples.filter(function (item) {
+        return typeof item === "string" && item;
+      });
+    }
+
+    function row(title, subtitle, buttons, samples) {
       var wrap = make("div", "ais-row");
       var main = make("div", "ais-row-main");
       main.appendChild(make("div", "ais-row-title", title));
       if (subtitle) main.appendChild(make("div", "ais-row-sub", subtitle));
+      if (samples && samples.length) {
+        var sampleBox = make("div", "ais-row-samples");
+        samples.slice(0, 2).forEach(function (text) {
+          sampleBox.appendChild(make("div", "ais-sample", "《" + text + "》"));
+        });
+        main.appendChild(sampleBox);
+      }
       wrap.appendChild(main);
       if (buttons && buttons.length) {
         var side = make("div", "ais-row-side");
@@ -300,28 +317,93 @@
       );
       pending.forEach(function (mid) {
         var account = accounts[mid];
-        var subtitle = (account.reasons || []).join(" · ") + " · 命中 " + account.hits + " 次";
+        var reasons = (account.reasons || []).join(" · ");
+        var subtitle = "mid " + mid;
+        if (reasons) subtitle += " · " + reasons;
+        subtitle += " · 命中 " + account.hits + " 次";
         panelBody.appendChild(
-          row(accountName(account, mid), subtitle, [
-            button("确认", "ais-btn-primary", function () {
-              actions.confirm(Number(mid));
-              toast("已确认");
-            }),
-            button("误伤", "", function () {
-              actions.dismiss(Number(mid));
-              toast("已恢复并加入白名单");
-            })
-          ])
+          row(
+            accountName(account, mid),
+            subtitle,
+            [
+              button("确认", "ais-btn-primary", function () {
+                actions.confirm(Number(mid));
+                toast("已确认");
+              }),
+              button("误伤", "", function () {
+                actions.dismiss(Number(mid));
+                toast("已恢复并加入白名单");
+              })
+            ],
+            accountSamples(account)
+          )
         );
       });
+    }
+
+    function parseMid(value) {
+      var text = String(value || "").trim();
+      if (!text) return 0;
+      var match = text.match(/space\.bilibili\.com\/(\d{1,12})/i);
+      if (match) return parseInt(match[1], 10);
+      if (/^\d{1,12}$/.test(text)) return parseInt(text, 10);
+      return 0;
+    }
+
+    function hiddenEntries(query) {
+      var q = String(query || "").trim().toLowerCase();
+      var items = Object.keys(store.data.accounts)
+        .map(Number)
+        .filter(function (mid) {
+          var account = store.data.accounts[mid];
+          return !!account && account.status === "hidden";
+        })
+        .map(function (mid) {
+          var account = store.data.accounts[mid];
+          return { mid: mid, account: account, name: accountName(account, mid) };
+        });
+      if (q) {
+        items = items.filter(function (item) {
+          return item.name.toLowerCase().indexOf(q) !== -1 || String(item.mid).indexOf(q) !== -1;
+        });
+      }
+      items.sort(function (a, b) {
+        var byName = a.name.localeCompare(b.name, "zh-Hans-CN", { numeric: true, sensitivity: "base" });
+        return byName !== 0 ? byName : a.mid - b.mid;
+      });
+      return items;
+    }
+
+    function syncHint() {
+      var meta = store.data.meta || {};
+      if (!meta.lastSync) return "还没同步过。默认订阅仓库 list/ai-slop.json，只新增，不删除本地记录。";
+      var date = new Date(meta.lastSync);
+      var pad = function (value) {
+        return value < 10 ? "0" + value : String(value);
+      };
+      var when = date.getMonth() + 1 + "-" + pad(date.getDate()) + " " + pad(date.getHours()) + ":" + pad(date.getMinutes());
+      return "上次同步 " + when + (meta.lastSyncCount ? " · 拉取 " + meta.lastSyncCount + " 条" : "");
     }
 
     function renderList() {
       var counts = store.counts();
       var summary = make("div", "ais-summary");
       summary.appendChild(make("span", "ais-summary-num", String(counts.hidden)));
-      summary.appendChild(make("span", "", " 个账号在名单中"));
+      summary.appendChild(make("span", "", " 个账号在名单中（按名称排序）"));
       panelBody.appendChild(summary);
+
+      function doSync() {
+        actions.syncRemote().then(function (result) {
+          if (result && result.ok) {
+            var message = "同步完成：新增 " + result.added + " 个";
+            if (result.upgraded) message += "，待确认转正 " + result.upgraded + " 个";
+            if (result.total) message += "（共 " + result.total + " 条）";
+            toast(message);
+          } else {
+            toast("同步失败：" + ((result && result.error) || "未知错误"));
+          }
+        });
+      }
 
       var toolbar = make("div", "ais-toolbar");
       toolbar.appendChild(
@@ -342,56 +424,121 @@
         })
       );
       toolbar.appendChild(button("导入名单", "", chooseImportFile));
+      toolbar.appendChild(button("同步订阅", "", doSync));
       panelBody.appendChild(toolbar);
+
+      var searchRow = make("div", "ais-list-tools");
+      var searchInput = doc.createElement("input");
+      searchInput.type = "search";
+      searchInput.className = "ais-input";
+      searchInput.placeholder = "搜索昵称 / mid";
+      searchInput.value = listQuery;
+      searchRow.appendChild(searchInput);
+      panelBody.appendChild(searchRow);
+
+      var addRow = make("div", "ais-add-row");
+      var midInput = doc.createElement("input");
+      midInput.type = "text";
+      midInput.className = "ais-input ais-input-mid";
+      midInput.placeholder = "mid 或空间链接";
+      var nameInput = doc.createElement("input");
+      nameInput.type = "text";
+      nameInput.className = "ais-input";
+      nameInput.placeholder = "备注名（可选）";
+
+      function submitAdd() {
+        var mid = parseMid(midInput.value);
+        if (!mid) {
+          toast("请填写数字 mid 或 space.bilibili.com/123 链接");
+          return;
+        }
+        var name = nameInput.value.trim();
+        listQuery = "";
+        listPage = 0;
+        var result = actions.addManual(mid, name);
+        if (result && result.ok) toast("已添加 " + (name || "mid " + mid));
+        else toast((result && result.error) || "添加失败");
+      }
+
+      midInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") submitAdd();
+      });
+      nameInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") submitAdd();
+      });
+      addRow.appendChild(midInput);
+      addRow.appendChild(nameInput);
+      addRow.appendChild(button("添加", "ais-btn-primary", submitAdd));
+      panelBody.appendChild(addRow);
+
+      var rowsBox = make("div", "ais-list-rows");
+      var pagerBox = make("div", "ais-pager");
+      panelBody.appendChild(rowsBox);
+      panelBody.appendChild(pagerBox);
 
       var syncRow = make("div", "ais-sync");
       var urlInput = doc.createElement("input");
       urlInput.type = "url";
       urlInput.className = "ais-input";
-      urlInput.placeholder = "订阅地址（可选，raw.githubusercontent.com / jsDelivr）";
+      urlInput.placeholder = "订阅地址（raw.githubusercontent.com / jsDelivr）";
       urlInput.value = store.settings().listUrl || "";
       urlInput.addEventListener("change", function () {
         actions.saveSetting("listUrl", urlInput.value.trim());
       });
       syncRow.appendChild(urlInput);
       syncRow.appendChild(
-        button("同步", "", function () {
-          actions.syncRemote().then(function (result) {
-            if (result && result.ok) {
-              toast("同步完成，新增 " + result.added + " 个账号");
-            } else {
-              toast("同步失败：" + ((result && result.error) || "未知错误"));
-            }
-          });
-        })
+        button("同步", "", doSync)
       );
       panelBody.appendChild(syncRow);
+      panelBody.appendChild(make("p", "ais-sync-meta", syncHint()));
 
-      var keys = Object.keys(store.data.accounts)
-        .filter(function (mid) {
-          return store.data.accounts[mid].status === "hidden";
-        })
-        .map(Number)
-        .sort(function (a, b) {
-          return (store.data.accounts[b].lastSeen || 0) - (store.data.accounts[a].lastSeen || 0);
+      function paint() {
+        clear(rowsBox);
+        clear(pagerBox);
+        rowsBox.scrollTop = 0;
+        var items = hiddenEntries(listQuery);
+        if (!items.length) {
+          rowsBox.appendChild(
+            emptyHint(listQuery ? "没有匹配「" + listQuery + "」的账号。" : "名单还是空的。在卡片上点「屏蔽」，或在上方手动添加。")
+          );
+          return;
+        }
+        var pages = Math.max(1, Math.ceil(items.length / LIST_PAGE_SIZE));
+        if (listPage < 0) listPage = 0;
+        if (listPage > pages - 1) listPage = pages - 1;
+        items.slice(listPage * LIST_PAGE_SIZE, (listPage + 1) * LIST_PAGE_SIZE).forEach(function (item) {
+          var label = item.account.confidence === "auto" ? "自动" : item.account.source === "remote" ? "订阅" : "手动";
+          rowsBox.appendChild(
+            row(item.name, label + " · mid " + item.mid, [
+              button("移除", "", function () {
+                actions.dismiss(item.mid);
+                toast("已移除并加入白名单");
+              })
+            ])
+          );
         });
-      if (keys.length === 0) {
-        panelBody.appendChild(emptyHint("名单还是空的。在卡片上点「屏蔽这个 UP」即可加入。"));
-        return;
+        var prev = button("上一页", "", function () {
+          listPage -= 1;
+          paint();
+        });
+        prev.disabled = listPage === 0;
+        var next = button("下一页", "", function () {
+          listPage += 1;
+          paint();
+        });
+        next.disabled = listPage >= pages - 1;
+        pagerBox.appendChild(prev);
+        pagerBox.appendChild(make("span", "ais-pager-info", listPage + 1 + " / " + pages + " · 共 " + items.length + " 个"));
+        pagerBox.appendChild(next);
       }
-      keys.slice(0, 100).forEach(function (mid) {
-        var account = store.data.accounts[mid];
-        if (!account) return;
-        var label = account.confidence === "auto" ? "自动" : account.source === "remote" ? "订阅" : "手动";
-        panelBody.appendChild(
-          row(accountName(account, mid), label + " · mid " + mid, [
-            button("移除", "", function () {
-              actions.dismiss(mid);
-              toast("已移除并加入白名单");
-            })
-          ])
-        );
+
+      searchInput.addEventListener("input", function () {
+        listQuery = searchInput.value;
+        listPage = 0;
+        paint();
       });
+
+      paint();
     }
 
     function renderSettings() {
