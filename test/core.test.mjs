@@ -51,6 +51,24 @@ test("标签 AI影视片场 + 体裁判高置信", () => {
   assert.ok(result.reasons.some((reason) => reason.includes("标签")));
 });
 
+test("泛 AI 内容没有漫剧/短剧特征时只到中置信", () => {
+  const result = core.scoreCard({
+    name: "AI全民制作人",
+    title: "我用 AI 做了个动画短片，全流程展示",
+    tags: ["AI"]
+  });
+  assert.ok(result.score >= 4, "分数仍然很高");
+  assert.equal(result.confidence, "medium", "缺少体裁特征时不能自动隐藏");
+  assert.equal(result.capped, true);
+  assert.ok(result.reasons.some((reason) => reason.includes("缺少漫剧/短剧特征")));
+});
+
+test("AI 剧集类（剧集/上集）仍然判高置信", () => {
+  const result = core.scoreCard({ name: "咩咩是个迷", title: "AI剧集《出马仙镇东北》上集【AI全民制作人】" });
+  assert.equal(result.confidence, "high");
+  assert.equal(result.capped, false);
+});
+
 test("UP 简介自报 AI + 体裁判高置信", () => {
   const result = core.scoreCard({
     name: "某频道",

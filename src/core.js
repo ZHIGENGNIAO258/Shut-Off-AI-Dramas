@@ -29,7 +29,7 @@
     title: /AIGC|AI\s*[\u4e00-\u9fa5]{0,4}?(?:漫剧|短剧|生成|制作|绘制|动画|影视|原创|改编|视频)|人工智能\s*(?:生成|创作|制作)|生成式/i,
     sign: /AIGC|AI\s*[\u4e00-\u9fa5]{0,4}?(?:创作|动画|漫剧|短剧|视频|影视|生成|制作)|人工智能|生成式/i,
     tag: /^(?:AIGC|AI|人工智能|生成式|B站AI影视片场)$|AI\s*(?:动画|漫剧|短剧|视频|影视|作品|生成|片场)/i,
-    genre: /漫剧|短剧|剧场|合集|一口气看完|第\s*[0-9０-９一二三四五六七八九十百]+\s*[集话]/,
+    genre: /漫剧|短剧|剧集|剧场|合集|一口气看完|上集|下集|上篇|下篇|第\s*[0-9０-９一二三四五六七八九十百]+\s*[集话]/,
     nameGenre: /剧场|短剧|漫剧|漫馆|制片厂|追漫|影业|好剧|番剧局|小剧场|漫剪|漫动画/,
     nameWeak: /动漫|漫画|说漫|看剧|看漫|推剧|放映厅|听书|漫社|漫城|漫听|漫梗|国漫/,
     serial:
@@ -98,8 +98,17 @@
     var trope = RE.trope.test(title);
     var longTitle = title.replace(/\s+/g, "").length >= 24;
     var signGenre = !!sign && !RE.sign.test(sign) && RE.signGenre.test(sign);
-    var genreSignal = nameGenre || nameWeak || serial || !!tagGenre || trope;
+    var genreBase = RE.genre.test(title);
+    var genreSignal = nameGenre || nameWeak || serial || !!tagGenre || trope || genreBase;
     var recap = RE.negative.test(title) || (!!sign && RE.negative.test(sign));
+
+    // AI 标识单独出现不代表漫剧：必须同时有漫剧/短剧特征才自动隐藏，
+    // 否则只打可疑角标（避免误杀 AI 绘画、AI 音乐、AI 活动等泛 AI 内容）
+    var aiScore = 0;
+    if (RE.name.test(name)) aiScore += 4;
+    if (RE.title.test(title)) aiScore += 4;
+    if (sign && RE.sign.test(sign)) aiScore += 3;
+    if (tagHit) aiScore += 3;
 
     var score = 0;
     if (RE.name.test(name)) {
@@ -167,8 +176,14 @@
       reasons.push("同 UP 本页出现 " + density + " 次");
     }
 
-    var confidence = score >= 4 ? "high" : score >= 2 ? "medium" : "none";
-    return { score: score, confidence: confidence, vetoed: false, reasons: reasons };
+    var capped = false;
+    if (aiScore >= 3 && !genreSignal && score >= 4) {
+      capped = true;
+      reasons.push("仅 AI 标识，缺少漫剧/短剧特征");
+    }
+
+    var confidence = score >= 4 && !capped ? "high" : score >= 2 ? "medium" : "none";
+    return { score: score, confidence: confidence, vetoed: false, capped: capped, reasons: reasons };
   }
 
   /* ---------- 设置与数据归一化 ---------- */

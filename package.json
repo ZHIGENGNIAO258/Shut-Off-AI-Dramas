@@ -1,6 +1,6 @@
 {
   "name": "shut-off-ai-dramas",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": true,
   "description": "B 站 AI 漫剧屏蔽器：按账号名单与规则隐藏首页/搜索里的 AI 漫剧卡片",
   "license": "MIT",
@@ -19,5 +19,6 @@
     "jsdom": "^31.0.1"
   }
 }
+
 
 
