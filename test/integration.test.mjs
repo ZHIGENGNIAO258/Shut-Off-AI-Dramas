@@ -100,6 +100,7 @@ test("构建产物能在主页跑通：规则隐藏、名单隐藏、标记模�
   const last = saved[saved.length - 1];
   assert.ok(last && last.value.accounts[100], "自动命中应写入待确认账号");
   assert.equal(last.value.accounts[100].status, "pending");
+  assert.equal(last.value.accounts[100].samples.join("|"), "《潮尸》第一集", "应记录视频标题作为样本");
 
   doc.getElementById("ais-fab").click();
   assert.equal(doc.getElementById("ais-panel").hidden, false, "点击悬浮球应打开面板");
@@ -214,3 +215,5 @@ test("search page integration", async (t) => {
 
   dom.window.close();
 });
+
+

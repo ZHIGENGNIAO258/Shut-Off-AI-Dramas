@@ -31,6 +31,7 @@ function makeSeed() {
   accounts[5000] = account("熊猫小圣AIGC", "pending", {
     samples: ["《潮尸》第一集：开局就领盒饭", "《潮尸》第二集"]
   });
+  accounts[5001] = account("旧版本命中的号", "pending", { samples: [] });
   return {
     schema: 1,
     settings: {
@@ -180,4 +181,10 @@ test("待确认页：显示 mid 和视频标题", async (t) => {
   const samples = [...doc.querySelectorAll(".ais-row-samples .ais-sample")].map((el) => el.textContent);
   assert.equal(samples.length, 2, "最多显示两条视频标题");
   assert.equal(samples[0].includes("潮尸"), true, "应显示视频标题");
+  assert.equal(
+    doc.querySelector(".ais-sample-empty").textContent.includes("暂无标题样本"),
+    true,
+    "没有样本的旧账号要给出占位提示"
+  );
+  assert.match(doc.querySelector(".ais-panel-foot").textContent, /v\d+\.\d+\.\d+/, "页脚应显示版本号");
 });

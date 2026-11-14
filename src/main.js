@@ -146,6 +146,14 @@
     }
 
     var account = store.getAccount(mid);
+    if (!record.title) {
+      var reread = surface.read(record.wrapper);
+      if (reread && reread.title) record.title = reread.title;
+    }
+    // 旧版本创建的账号可能没有样本标题：碰到卡片就补一条
+    if (account && (!Array.isArray(account.samples) || account.samples.length === 0) && record.title) {
+      store.addSample(mid, record.title);
+    }
     if (account && core.shouldHideAccount(account)) {
       dom.hide(record.wrapper, settings.showPlaceholder);
       return;

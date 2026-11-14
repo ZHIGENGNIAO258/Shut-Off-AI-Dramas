@@ -17,8 +17,7 @@ function makeStore() {
   });
 }
 
-test("自动命中两次后账号转为隐藏", () => {
-  const store = makeStore();
+test("自动命中两次后账号转为隐藏", () => {  const store = makeStore();
   const first = store.noteAutoHit(100, { name: "AIGC 频道", reasons: ["昵称含 AI 标识"], sample: "第1集" });
   assert.equal(first.status, "pending");
   assert.equal(first.hits, 1);
@@ -151,4 +150,17 @@ test("数据可持久化到同一个存储", () => {
   const second = storeApi.createStore(options);
   assert.ok(second.getAccount(800));
   assert.equal(second.getAccount(800).name, "持久号");
+});
+
+test("旧账号没有标题样本时可以补样本，且不影响命中次数", () => {
+  const store = makeStore();
+  store.noteAutoHit(900, { name: "旧号", reasons: ["昵称含 AI 标识"] });
+  assert.deepEqual(store.getAccount(900).samples, []);
+  const hits = store.getAccount(900).hits;
+
+  assert.equal(store.addSample(900, "《潮尸》第一集"), true);
+  assert.deepEqual(store.getAccount(900).samples, ["《潮尸》第一集"]);
+  assert.equal(store.getAccount(900).hits, hits);
+  assert.equal(store.addSample(900, "《潮尸》第一集"), false, "重复样本不重复写入");
+  assert.equal(store.addSample(901, "不存在的账号"), false);
 });

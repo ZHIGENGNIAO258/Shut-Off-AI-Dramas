@@ -46,6 +46,7 @@ const parts = FILES.map((file) => {
 
 const body = `(function () {
   "use strict";
+  globalThis.AIS_VERSION = ${JSON.stringify(pkg.version)};
   globalThis.AIS_CSS = ${JSON.stringify(css)};
 ${parts.join("\n")}
 })();

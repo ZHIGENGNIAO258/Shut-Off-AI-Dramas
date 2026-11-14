@@ -328,6 +328,10 @@
   white-space: nowrap;
 }
 
+.ais-sample-empty {
+  color: #c0c4cc;
+}
+
 .ais-pager {
   position: sticky;
   bottom: -12px;

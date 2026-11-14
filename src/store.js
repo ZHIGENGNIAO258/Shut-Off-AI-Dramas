@@ -176,6 +176,18 @@
       return true;
     }
 
+    // 给旧版本创建、没有样本标题的账号补一条标题（不改命中次数）
+    function addSample(mid, sample) {
+      var account = data.accounts[mid];
+      if (!account || typeof sample !== "string" || !sample) return false;
+      if (!Array.isArray(account.samples)) account.samples = [];
+      var text = sample.slice(0, 160);
+      if (account.samples.length >= 5 || account.samples.indexOf(text) !== -1) return false;
+      account.samples.push(text);
+      save();
+      return true;
+    }
+
     function dismissAccount(mid) {
       var ts = now();
       delete data.accounts[mid];
@@ -286,6 +298,7 @@
       setSetting: setSetting,
       getAccount: getAccount,
       noteAutoHit: noteAutoHit,
+      addSample: addSample,
       upsertManual: upsertManual,
       confirmAccount: confirmAccount,
       removeAccount: removeAccount,

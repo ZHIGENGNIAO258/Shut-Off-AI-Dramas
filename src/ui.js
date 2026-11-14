@@ -321,23 +321,28 @@
         var subtitle = "mid " + mid;
         if (reasons) subtitle += " · " + reasons;
         subtitle += " · 命中 " + account.hits + " 次";
-        panelBody.appendChild(
-          row(
-            accountName(account, mid),
-            subtitle,
-            [
-              button("确认", "ais-btn-primary", function () {
-                actions.confirm(Number(mid));
-                toast("已确认");
-              }),
-              button("误伤", "", function () {
-                actions.dismiss(Number(mid));
-                toast("已恢复并加入白名单");
-              })
-            ],
-            accountSamples(account)
-          )
+        var samples = accountSamples(account);
+        var node = row(
+          accountName(account, mid),
+          subtitle,
+          [
+            button("确认", "ais-btn-primary", function () {
+              actions.confirm(Number(mid));
+              toast("已确认");
+            }),
+            button("误伤", "", function () {
+              actions.dismiss(Number(mid));
+              toast("已恢复并加入白名单");
+            })
+          ],
+          samples
         );
+        if (!samples.length) {
+          node
+            .querySelector(".ais-row-main")
+            .appendChild(make("div", "ais-sample ais-sample-empty", "暂无标题样本（旧版本命中，刷到同类卡片会补上）"));
+        }
+        panelBody.appendChild(node);
       });
     }
 
@@ -586,7 +591,14 @@
       else if (tab === "list") renderList();
       else renderSettings();
       var counts = store.counts();
-      panelFoot.textContent = "名单 " + counts.hidden + " · 待确认 " + counts.pending + " · 本地屏蔽，不修改账号";
+      var version = (typeof globalThis !== "undefined" && globalThis.AIS_VERSION) || "";
+      panelFoot.textContent =
+        (version ? "v" + version + " · " : "") +
+        "名单 " +
+        counts.hidden +
+        " · 待确认 " +
+        counts.pending +
+        " · 本地屏蔽，不修改账号";
     }
 
     function refresh(forceRender) {

@@ -63,9 +63,11 @@ https://cdn.jsdelivr.net/gh/ZHIGENGNIAO258/Shut-Off-AI-Dramas@main/dist/shut-off
 点右下角悬浮球打开：
 
 - **本页**：本页隐藏了多少条、分别是谁，可逐条恢复或整页恢复。
-- **待确认**：规则自动命中的账号，带 mid、命中原因和视频标题，可确认或标误伤。
+- **待确认**：规则自动命中的账号，带 mid、命中原因和视频标题，可确认或标误伤；旧版本留下、没有标题样本的账号会显示占位提示，再次刷到同类卡片时自动补上。
 - **名单**：按名称排序，支持搜索、分页、手动添加；导出 / 导入 / 订阅、手动移除账号。
 - **设置**：自动隐藏、角标、占位条、低频读取简介/标签、远程名单。
+
+面板页脚会显示当前脚本版本号，方便确认是否已更新到最新版。
 
 「恢复」会把账号加入白名单并写墓碑，远程名单 30 天内不会把它加回来。
 
@@ -147,7 +149,7 @@ https://cdn.jsdelivr.net/gh/ZHIGENGNIAO258/Shut-Off-AI-Dramas@main/dist/shut-off
 
 ```bash
 npm install
-npm test          # 规则 + 存储 + jsdom 适配 + 构建产物集成测试（53 项）
+npm test          # 规则 + 存储 + jsdom 适配 + 构建产物集成测试（54 项）
 npm run build     # 生成 dist/shut-off-ai-dramas.user.js
 npm run verify    # 测试 + 构建 + 名单校验
 npm run demo      # 生成 docs/demo.html 界面预览（模拟卡片，无真实数据）
@@ -179,6 +181,8 @@ test/             单元测试与 jsdom 集成测试
 ## License
 
 MIT
+
+
 
 
 
