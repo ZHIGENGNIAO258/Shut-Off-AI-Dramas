@@ -76,3 +76,83 @@ test("动画分区：悬停按钮能出现并屏蔽 feed-card 包装的卡片", 
   await new Promise((resolve) => setTimeout(resolve, 30));
   assert.equal(feedCard.classList.contains("ais-hidden"), true, "点击屏蔽应隐藏 feed-card");
 });
+
+test("动画分区：前三行 head-cards 网格的卡片也能悬停并屏蔽", async (t) => {
+  if (!fs.existsSync(builtFile)) {
+    t.skip("dist 不存在，先运行 node build.mjs");
+    return;
+  }
+  const code = fs.readFileSync(builtFile, "utf8");
+  const html = `<!doctype html><html><head></head><body>
+    <div class="head-cards">
+      <div class="banner-carousel channel-carousel">
+        <div class="vui_carousel__slides">
+          <div class="vui_carousel__slide"><a class="cover-wrap" href="https://www.bilibili.com/video/BVbanner">推广位</a></div>
+        </div>
+      </div>
+      <div class="feed-card head-card">
+        <div class="bili-video-card video-card">
+          <div class="bili-video-card__wrap">
+            <a href="https://www.bilibili.com/video/BV1headcard">
+              <div class="bili-video-card__title" title="头部卡片 第一集">头部卡片 第一集</div>
+            </a>
+            <div class="bili-video-card__subtitle">
+              <a class="bili-video-card__author" href="https://space.bilibili.com/998877">
+                <span>头部UP · 10-24</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="feed-cards">
+      <div class="feed-card">
+        <div class="bili-video-card">
+          <a href="https://www.bilibili.com/video/BV1L7eY6zEMA">
+            <div class="bili-video-card__title" title="普通视频 第1集">普通视频 第1集</div>
+          </a>
+          <a class="bili-video-card__author" href="https://space.bilibili.com/123456">
+            <span>普通UP · 10-24</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </body></html>`;
+
+  const dom = new JSDOM(html, {
+    url: "https://www.bilibili.com/c/douga/",
+    runScripts: "dangerously",
+    pretendToBeVisual: true,
+    beforeParse(window) {
+      window.GM_getValue = (key, fallback) =>
+        key === "ais:data" ? JSON.parse(JSON.stringify(seed)) : fallback;
+      window.GM_setValue = () => {};
+      window.GM_registerMenuCommand = () => {};
+    }
+  });
+
+  t.after(() => {
+    try {
+      dom.window.close();
+    } catch (error) {
+      /* ignore */
+    }
+  });
+
+  dom.window.eval(code);
+  await new Promise((resolve) => setTimeout(resolve, 120));
+
+  const doc = dom.window.document;
+  const headCard = doc.querySelector(".feed-card.head-card");
+  const headTitle = headCard.querySelector(".bili-video-card__title");
+  const hover = doc.getElementById("ais-hover");
+
+  headTitle.dispatchEvent(new dom.window.MouseEvent("mouseover", { bubbles: true, cancelable: true }));
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.equal(hover.hidden, false, "头部卡片悬停应出现工具条");
+
+  hover.querySelector(".ais-btn").click();
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.equal(headCard.classList.contains("ais-hidden"), true, "点击屏蔽应隐藏 head-card");
+  assert.equal(doc.querySelector(".banner-carousel").classList.contains("ais-hidden"), false, "轮播图不能被隐藏");
+});

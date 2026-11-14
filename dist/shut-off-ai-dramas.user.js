@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         B 站 AI 漫剧屏蔽器
 // @namespace    https://github.com/ZHIGENGNIAO258/Shut-Off-AI-Dramas
-// @version      0.4.0
+// @version      0.4.1
 // @description  按账号名单与规则隐藏 B 站首页 / 搜索 / 动画分区里的 AI 漫剧卡片，名单可导出分享
 // @author       ZHIGENGNIAO258
 // @license      MIT
@@ -561,8 +561,8 @@
     cardSelector: ".bili-video-card, .video-card",
     getCards: function (root) {
       return Array.prototype.slice.call(root.querySelectorAll(this.cardSelector)).filter(function (el) {
-        // 顶部 head-cards 是轮播，跳过以免破坏轮播布局
-        return !el.closest(".head-cards");
+        // 真正的轮播slide 只取当前帧，隐藏会打乱翻页，跳过
+        return !el.closest(".vui_carousel__slide");
       });
     },
     wrapperOf: function (target) {
@@ -572,7 +572,7 @@
       return card.closest(".feed-card") || card;
     },
     ignored: function (element) {
-      return !!(element && element.closest && element.closest(".head-cards"));
+      return !!(element && element.closest && element.closest(".vui_carousel__slide"));
     },
     read: readCard
   };

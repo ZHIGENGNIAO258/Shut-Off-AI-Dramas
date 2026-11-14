@@ -90,8 +90,8 @@
     cardSelector: ".bili-video-card, .video-card",
     getCards: function (root) {
       return Array.prototype.slice.call(root.querySelectorAll(this.cardSelector)).filter(function (el) {
-        // 顶部 head-cards 是轮播，跳过以免破坏轮播布局
-        return !el.closest(".head-cards");
+        // 真正的轮播slide 只取当前帧，隐藏会打乱翻页，跳过
+        return !el.closest(".vui_carousel__slide");
       });
     },
     wrapperOf: function (target) {
@@ -101,7 +101,7 @@
       return card.closest(".feed-card") || card;
     },
     ignored: function (element) {
-      return !!(element && element.closest && element.closest(".head-cards"));
+      return !!(element && element.closest && element.closest(".vui_carousel__slide"));
     },
     read: readCard
   };
