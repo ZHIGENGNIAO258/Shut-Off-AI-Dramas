@@ -33,6 +33,12 @@
 https://raw.githubusercontent.com/ZHIGENGNIAO258/Shut-Off-AI-Dramas/main/dist/shut-off-ai-dramas.user.js
 ```
 
+raw 缓存没刷新时可用 jsDelivr 镜像：
+
+```
+https://cdn.jsdelivr.net/gh/ZHIGENGNIAO258/Shut-Off-AI-Dramas@main/dist/shut-off-ai-dramas.user.js
+```
+
 仓库：<https://github.com/ZHIGENGNIAO258/Shut-Off-AI-Dramas>
 
 ## 使用
