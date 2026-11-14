@@ -27,11 +27,17 @@
 2. 打开扩展的「添加新脚本」，把 `dist/shut-off-ai-dramas.user.js` 的内容整体粘贴进去，保存。
 3. 打开 `https://www.bilibili.com/`，右下角出现「AI」悬浮球即安装成功。
 
-也可以把 `dist/shut-off-ai-dramas.user.js` 放到自己的静态服务器 / GitHub raw，用脚本管理器的「从 URL 安装」导入。
+也可以直接点 GitHub raw 安装：
+
+```
+https://raw.githubusercontent.com/ZHIGENGNIAO258/Shut-Off-AI-Dramas/main/dist/shut-off-ai-dramas.user.js
+```
+
+仓库：<https://github.com/ZHIGENGNIAO258/Shut-Off-AI-Dramas>
 
 ## 使用
 
-### 主页 / 搜索页
+### 主页 / 搜索页 / 动画分区
 
 - 命中名单或高置信规则的卡片会直接收起，布局自动回流。
 - 可疑卡片右上角出现 `?` 角标，只提示不隐藏。
