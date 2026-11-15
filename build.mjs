@@ -9,6 +9,7 @@ const FILES = [
   "src/core.js",
   "src/surfaces.js",
   "src/api.js",
+  "src/relation.js",
   "src/store.js",
   "src/dom.js",
   "src/ui.js",

@@ -101,7 +101,9 @@
           firstSeen: ts,
           lastSeen: ts,
           source: "local",
-          hits: 1
+          hits: 1,
+          blocked: false,
+          blockedAt: 0
         };
         mergeReasons(account.reasons, info.reasons);
         if (info.sample) account.samples.push(String(info.sample).slice(0, 160));
@@ -142,7 +144,9 @@
         firstSeen: ts,
         lastSeen: ts,
         source: "local",
-        hits: 1
+        hits: 1,
+        blocked: false,
+        blockedAt: 0
       };
       account.status = "hidden";
       account.confidence = "manual";
@@ -155,6 +159,15 @@
       data.accounts[mid] = account;
       save();
       return previous;
+    }
+
+    function setBlocked(mid, blocked) {
+      var account = data.accounts[mid];
+      if (!account) return false;
+      account.blocked = !!blocked;
+      account.blockedAt = blocked ? now() : 0;
+      save();
+      return true;
     }
 
     function confirmAccount(mid) {
@@ -301,6 +314,7 @@
       addSample: addSample,
       upsertManual: upsertManual,
       confirmAccount: confirmAccount,
+      setBlocked: setBlocked,
       removeAccount: removeAccount,
       dismissAccount: dismissAccount,
       restoreAccount: restoreAccount,
@@ -319,3 +333,4 @@
 
   return { createStore: createStore, KEY: KEY };
 });
+

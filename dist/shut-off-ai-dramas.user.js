@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         B 站 AI 漫剧屏蔽器
 // @namespace    https://github.com/ZHIGENGNIAO258/Shut-Off-AI-Dramas
-// @version      0.6.0
+// @version      0.7.0
 // @description  按账号名单与规则隐藏 B 站首页 / 搜索 / 动画分区里的 AI 漫剧卡片，名单可导出分享
 // @author       ZHIGENGNIAO258
 // @license      MIT
@@ -20,8 +20,8 @@
 // ==/UserScript==
 (function () {
   "use strict";
-  globalThis.AIS_VERSION = "0.6.0";
-  globalThis.AIS_CSS = "/* B 站 AI 漫剧屏蔽器 · 界面样式（全部限定在 ais- 前缀内） */\n\n.ais-hidden {\n  display: none !important;\n}\n\n.ais-placeholder {\n  position: relative;\n  display: flex !important;\n  align-items: center;\n  justify-content: center;\n  min-height: 90px;\n  border: 1px dashed #fb7299;\n  border-radius: 8px;\n  background: #fff5f8;\n}\n\n.ais-placeholder > * {\n  display: none !important;\n}\n\n.ais-placeholder::before {\n  content: \"已屏蔽 · AI 漫剧\";\n  color: #fb7299;\n  font-size: 13px;\n}\n\n.ais-suspect {\n  position: relative;\n  outline: 2px dashed #fb7299;\n  outline-offset: -2px;\n}\n\n.ais-suspect::after {\n  content: \"?\";\n  position: absolute;\n  top: 6px;\n  right: 6px;\n  z-index: 20;\n  width: 18px;\n  height: 18px;\n  line-height: 18px;\n  text-align: center;\n  border-radius: 50%;\n  background: #fb7299;\n  color: #fff;\n  font-size: 12px;\n  font-weight: 700;\n  pointer-events: none;\n}\n\n.ais-marking .feed-card:hover,\n.ais-marking .video-list > div:hover {\n  outline: 2px solid #00aeec;\n  cursor: crosshair;\n}\n\n.ais-flash {\n  animation: ais-flash 0.9s ease;\n}\n\n@keyframes ais-flash {\n  0% {\n    box-shadow: 0 0 0 0 rgba(0, 174, 236, 0.8);\n  }\n  100% {\n    box-shadow: 0 0 0 12px rgba(0, 174, 236, 0);\n  }\n}\n\n/* 悬浮球 */\n.ais-fab {\n  position: fixed;\n  right: 20px;\n  bottom: 20px;\n  z-index: 2147483000;\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  padding: 8px 12px;\n  border: 0;\n  border-radius: 999px;\n  background: #fb7299;\n  color: #fff;\n  font: 600 13px/1.2 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  box-shadow: 0 6px 20px rgba(251, 114, 153, 0.4);\n  cursor: pointer;\n}\n\n.ais-fab:hover {\n  filter: brightness(1.05);\n}\n\n.ais-fab-hot {\n  background: #d94f7a;\n}\n\n.ais-fab-dot {\n  display: inline-block;\n  padding: 1px 4px;\n  border-radius: 4px;\n  background: rgba(255, 255, 255, 0.22);\n  font-size: 11px;\n}\n\n.ais-fab-count {\n  min-width: 16px;\n  text-align: center;\n}\n\n/* 面板 */\n.ais-panel {\n  position: fixed;\n  right: 20px;\n  bottom: 72px;\n  z-index: 2147483000;\n  display: flex;\n  flex-direction: column;\n  width: 380px;\n  max-width: calc(100vw - 32px);\n  max-height: min(72vh, 640px);\n  border-radius: 14px;\n  background: #fff;\n  color: #18191c;\n  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);\n  font: 13px/1.5 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  overflow: hidden;\n}\n\n.ais-panel[hidden],\n.ais-hover[hidden],\n.ais-modal[hidden],\n.ais-toast[hidden] {\n  display: none !important;\n}\n\n.ais-panel-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 12px 14px;\n  border-bottom: 1px solid #f1f2f3;\n}\n\n.ais-icon-btn {\n  border: 0;\n  background: transparent;\n  color: #9499a0;\n  font-size: 18px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.ais-tabs {\n  display: flex;\n  gap: 4px;\n  padding: 8px 10px;\n  border-bottom: 1px solid #f1f2f3;\n  background: #fafafa;\n}\n\n.ais-tab {\n  flex: 1;\n  padding: 6px 0;\n  border: 0;\n  border-radius: 8px;\n  background: transparent;\n  color: #61666d;\n  font: inherit;\n  cursor: pointer;\n}\n\n.ais-tab-active {\n  background: #fb7299;\n  color: #fff;\n}\n\n.ais-panel-body {\n  flex: 1;\n  padding: 12px 14px;\n  overflow: auto;\n}\n\n.ais-panel-foot {\n  padding: 8px 14px;\n  border-top: 1px solid #f1f2f3;\n  color: #9499a0;\n  font-size: 11px;\n}\n\n.ais-summary {\n  margin-bottom: 10px;\n  color: #61666d;\n}\n\n.ais-summary-num {\n  color: #fb7299;\n  font-size: 22px;\n  font-weight: 700;\n}\n\n.ais-empty {\n  margin: 12px 0;\n  color: #9499a0;\n  font-size: 12px;\n  line-height: 1.7;\n}\n\n.ais-row {\n  display: flex;\n  align-items: flex-start;\n  justify-content: space-between;\n  gap: 10px;\n  padding: 9px 0;\n  border-bottom: 1px solid #f4f5f6;\n}\n\n.ais-row-main {\n  min-width: 0;\n}\n\n.ais-row-title {\n  overflow: hidden;\n  color: #18191c;\n  font-weight: 600;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.ais-row-sub {\n  margin-top: 2px;\n  color: #9499a0;\n  font-size: 11px;\n  word-break: break-all;\n}\n\n.ais-row-side {\n  display: flex;\n  flex: 0 0 auto;\n  gap: 6px;\n}\n\n.ais-btn {\n  padding: 5px 9px;\n  border: 1px solid #e3e5e7;\n  border-radius: 7px;\n  background: #fff;\n  color: #18191c;\n  font: inherit;\n  cursor: pointer;\n  white-space: nowrap;\n}\n\n.ais-btn:hover {\n  border-color: #fb7299;\n  color: #fb7299;\n}\n\n.ais-btn-primary {\n  border-color: #fb7299;\n  background: #fb7299;\n  color: #fff;\n}\n\n.ais-btn-primary:hover {\n  background: #e45f86;\n  color: #fff;\n}\n\n.ais-btn-wide {\n  width: 100%;\n  margin-bottom: 8px;\n}\n\n.ais-toolbar {\n  display: flex;\n  gap: 8px;\n  margin-bottom: 8px;\n}\n\n.ais-sync {\n  display: flex;\n  gap: 8px;\n  margin-bottom: 10px;\n}\n\n.ais-input {\n  flex: 1;\n  min-width: 0;\n  padding: 6px 8px;\n  border: 1px solid #e3e5e7;\n  border-radius: 7px;\n  font: inherit;\n}\n\n.ais-input-mid {\n  flex: 0 0 118px;\n}\n\n.ais-list-tools,\n.ais-add-row {\n  display: flex;\n  gap: 6px;\n  margin-bottom: 6px;\n}\n\n.ais-sync-meta {\n  margin: 0 0 8px;\n  color: #9499a0;\n  font-size: 11px;\n  line-height: 1.5;\n}\n\n.ais-row-samples {\n  margin-top: 3px;\n}\n\n.ais-list-rows {\n  margin-top: 4px;\n}\n\n.ais-sample {\n  overflow: hidden;\n  color: #61666d;\n  font-size: 11px;\n  line-height: 1.5;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.ais-sample-empty {\n  color: #c0c4cc;\n}\n\n.ais-pager {\n  position: sticky;\n  bottom: -12px;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  margin-top: 6px;\n  padding: 8px 0 6px;\n  background: #fff;\n}\n\n.ais-pager-info {\n  color: #9499a0;\n  font-size: 11px;\n}\n\n.ais-btn[disabled] {\n  opacity: 0.45;\n  cursor: default;\n}\n\n.ais-btn[disabled]:hover {\n  border-color: #e3e5e7;\n  color: #18191c;\n}\n\n.ais-check {\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  padding: 8px 0;\n  border-bottom: 1px solid #f4f5f6;\n}\n\n.ais-check input {\n  margin-top: 3px;\n}\n\n.ais-check-note {\n  display: block;\n  color: #9499a0;\n  font-size: 11px;\n}\n\n/* 悬停工具条 */\n.ais-hover {\n  position: fixed;\n  z-index: 2147483001;\n  display: flex;\n  gap: 6px;\n  padding: 6px;\n  border-radius: 10px;\n  background: #18191c;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);\n}\n\n.ais-hover .ais-btn {\n  border-color: transparent;\n  background: #2b2d31;\n  color: #fff;\n  font-size: 12px;\n}\n\n.ais-hover .ais-btn:hover {\n  background: #fb7299;\n}\n\n.ais-hover .ais-btn-primary {\n  background: #fb7299;\n}\n\n/* 模态框 */\n.ais-modal {\n  position: fixed;\n  inset: 0;\n  z-index: 2147483002;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: rgba(0, 0, 0, 0.45);\n}\n\n.ais-modal-card {\n  width: 440px;\n  max-width: calc(100vw - 32px);\n  max-height: 80vh;\n  display: flex;\n  flex-direction: column;\n  border-radius: 14px;\n  background: #fff;\n  color: #18191c;\n  font: 13px/1.6 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  overflow: hidden;\n}\n\n.ais-modal-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 12px 16px;\n  border-bottom: 1px solid #f1f2f3;\n}\n\n.ais-modal-body {\n  flex: 1;\n  padding: 14px 16px;\n  overflow: auto;\n}\n\n.ais-modal-foot {\n  display: flex;\n  justify-content: flex-end;\n  gap: 8px;\n  padding: 12px 16px;\n  border-top: 1px solid #f1f2f3;\n}\n\n.ais-depth-line {\n  margin-bottom: 6px;\n  word-break: break-all;\n}\n\n/* Toast */\n.ais-toast {\n  position: fixed;\n  left: 50%;\n  bottom: 28px;\n  z-index: 2147483003;\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  padding: 9px 14px;\n  border-radius: 999px;\n  background: #18191c;\n  color: #fff;\n  font: 12px/1.4 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  transform: translateX(-50%);\n  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);\n}\n\n.ais-toast-btn {\n  border: 0;\n  background: transparent;\n  color: #fb7299;\n  font: inherit;\n  font-weight: 600;\n  cursor: pointer;\n}\n";
+  globalThis.AIS_VERSION = "0.7.0";
+  globalThis.AIS_CSS = "/* B 站 AI 漫剧屏蔽器 · 界面样式（全部限定在 ais- 前缀内） */\n\n.ais-hidden {\n  display: none !important;\n}\n\n.ais-placeholder {\n  position: relative;\n  display: flex !important;\n  align-items: center;\n  justify-content: center;\n  min-height: 90px;\n  border: 1px dashed #fb7299;\n  border-radius: 8px;\n  background: #fff5f8;\n}\n\n.ais-placeholder > * {\n  display: none !important;\n}\n\n.ais-placeholder::before {\n  content: \"已屏蔽 · AI 漫剧\";\n  color: #fb7299;\n  font-size: 13px;\n}\n\n.ais-suspect {\n  position: relative;\n  outline: 2px dashed #fb7299;\n  outline-offset: -2px;\n}\n\n.ais-suspect::after {\n  content: \"?\";\n  position: absolute;\n  top: 6px;\n  right: 6px;\n  z-index: 20;\n  width: 18px;\n  height: 18px;\n  line-height: 18px;\n  text-align: center;\n  border-radius: 50%;\n  background: #fb7299;\n  color: #fff;\n  font-size: 12px;\n  font-weight: 700;\n  pointer-events: none;\n}\n\n.ais-marking .feed-card:hover,\n.ais-marking .video-list > div:hover {\n  outline: 2px solid #00aeec;\n  cursor: crosshair;\n}\n\n.ais-flash {\n  animation: ais-flash 0.9s ease;\n}\n\n@keyframes ais-flash {\n  0% {\n    box-shadow: 0 0 0 0 rgba(0, 174, 236, 0.8);\n  }\n  100% {\n    box-shadow: 0 0 0 12px rgba(0, 174, 236, 0);\n  }\n}\n\n/* 悬浮球 */\n.ais-fab {\n  position: fixed;\n  right: 20px;\n  bottom: 20px;\n  z-index: 2147483000;\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  padding: 8px 12px;\n  border: 0;\n  border-radius: 999px;\n  background: #fb7299;\n  color: #fff;\n  font: 600 13px/1.2 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  box-shadow: 0 6px 20px rgba(251, 114, 153, 0.4);\n  cursor: pointer;\n}\n\n.ais-fab:hover {\n  filter: brightness(1.05);\n}\n\n.ais-fab-hot {\n  background: #d94f7a;\n}\n\n.ais-fab-dot {\n  display: inline-block;\n  padding: 1px 4px;\n  border-radius: 4px;\n  background: rgba(255, 255, 255, 0.22);\n  font-size: 11px;\n}\n\n.ais-fab-count {\n  min-width: 16px;\n  text-align: center;\n}\n\n/* 面板 */\n.ais-panel {\n  position: fixed;\n  right: 20px;\n  bottom: 72px;\n  z-index: 2147483000;\n  display: flex;\n  flex-direction: column;\n  width: 380px;\n  max-width: calc(100vw - 32px);\n  max-height: min(72vh, 640px);\n  border-radius: 14px;\n  background: #fff;\n  color: #18191c;\n  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);\n  font: 13px/1.5 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  overflow: hidden;\n}\n\n.ais-panel[hidden],\n.ais-hover[hidden],\n.ais-modal[hidden],\n.ais-toast[hidden] {\n  display: none !important;\n}\n\n.ais-panel-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 12px 14px;\n  border-bottom: 1px solid #f1f2f3;\n}\n\n.ais-icon-btn {\n  border: 0;\n  background: transparent;\n  color: #9499a0;\n  font-size: 18px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.ais-tabs {\n  display: flex;\n  gap: 4px;\n  padding: 8px 10px;\n  border-bottom: 1px solid #f1f2f3;\n  background: #fafafa;\n}\n\n.ais-tab {\n  flex: 1;\n  padding: 6px 0;\n  border: 0;\n  border-radius: 8px;\n  background: transparent;\n  color: #61666d;\n  font: inherit;\n  cursor: pointer;\n}\n\n.ais-tab-active {\n  background: #fb7299;\n  color: #fff;\n}\n\n.ais-panel-body {\n  flex: 1;\n  padding: 12px 14px;\n  overflow: auto;\n}\n\n.ais-panel-foot {\n  padding: 8px 14px;\n  border-top: 1px solid #f1f2f3;\n  color: #9499a0;\n  font-size: 11px;\n}\n\n.ais-summary {\n  margin-bottom: 10px;\n  color: #61666d;\n}\n\n.ais-summary-num {\n  color: #fb7299;\n  font-size: 22px;\n  font-weight: 700;\n}\n\n.ais-empty {\n  margin: 12px 0;\n  color: #9499a0;\n  font-size: 12px;\n  line-height: 1.7;\n}\n\n.ais-row {\n  display: flex;\n  align-items: flex-start;\n  justify-content: space-between;\n  gap: 10px;\n  padding: 9px 0;\n  border-bottom: 1px solid #f4f5f6;\n}\n\n.ais-row-main {\n  min-width: 0;\n}\n\n.ais-row-title {\n  overflow: hidden;\n  color: #18191c;\n  font-weight: 600;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.ais-row-sub {\n  margin-top: 2px;\n  color: #9499a0;\n  font-size: 11px;\n  word-break: break-all;\n}\n\n.ais-row-side {\n  display: flex;\n  flex: 0 0 auto;\n  gap: 6px;\n}\n\n.ais-btn {\n  padding: 5px 9px;\n  border: 1px solid #e3e5e7;\n  border-radius: 7px;\n  background: #fff;\n  color: #18191c;\n  font: inherit;\n  cursor: pointer;\n  white-space: nowrap;\n}\n\n.ais-btn:hover {\n  border-color: #fb7299;\n  color: #fb7299;\n}\n\n.ais-btn-primary {\n  border-color: #fb7299;\n  background: #fb7299;\n  color: #fff;\n}\n\n.ais-btn-primary:hover {\n  background: #e45f86;\n  color: #fff;\n}\n\n.ais-btn-wide {\n  width: 100%;\n  margin-bottom: 8px;\n}\n\n.ais-toolbar {\n  display: flex;\n  gap: 8px;\n  margin-bottom: 8px;\n}\n\n.ais-batch-row {\n  margin-bottom: 8px;\n}\n\n.ais-btn-danger {\n  border-color: #f06a94;\n  color: #d94f7a;\n}\n\n.ais-btn-danger:hover {\n  border-color: #fb7299;\n  background: #fb7299;\n  color: #fff;\n}\n\n.ais-modal-note {\n  margin: 6px 0 0;\n  color: #9499a0;\n  font-size: 11px;\n  line-height: 1.6;\n}\n\n.ais-modal-progress {\n  margin: 0 0 8px;\n  font-weight: 600;\n}\n\n.ais-sync {\n  display: flex;\n  gap: 8px;\n  margin-bottom: 10px;\n}\n\n.ais-input {\n  flex: 1;\n  min-width: 0;\n  padding: 6px 8px;\n  border: 1px solid #e3e5e7;\n  border-radius: 7px;\n  font: inherit;\n}\n\n.ais-input-mid {\n  flex: 0 0 118px;\n}\n\n.ais-list-tools,\n.ais-add-row {\n  display: flex;\n  gap: 6px;\n  margin-bottom: 6px;\n}\n\n.ais-sync-meta {\n  margin: 0 0 8px;\n  color: #9499a0;\n  font-size: 11px;\n  line-height: 1.5;\n}\n\n.ais-row-samples {\n  margin-top: 3px;\n}\n\n.ais-list-rows {\n  margin-top: 4px;\n}\n\n.ais-sample {\n  overflow: hidden;\n  color: #61666d;\n  font-size: 11px;\n  line-height: 1.5;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.ais-sample-empty {\n  color: #c0c4cc;\n}\n\n.ais-pager {\n  position: sticky;\n  bottom: -12px;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  margin-top: 6px;\n  padding: 8px 0 6px;\n  background: #fff;\n}\n\n.ais-pager-info {\n  color: #9499a0;\n  font-size: 11px;\n}\n\n.ais-btn[disabled] {\n  opacity: 0.45;\n  cursor: default;\n}\n\n.ais-btn[disabled]:hover {\n  border-color: #e3e5e7;\n  color: #18191c;\n}\n\n.ais-check {\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  padding: 8px 0;\n  border-bottom: 1px solid #f4f5f6;\n}\n\n.ais-check input {\n  margin-top: 3px;\n}\n\n.ais-check-note {\n  display: block;\n  color: #9499a0;\n  font-size: 11px;\n}\n\n/* 悬停工具条 */\n.ais-hover {\n  position: fixed;\n  z-index: 2147483001;\n  display: flex;\n  gap: 6px;\n  padding: 6px;\n  border-radius: 10px;\n  background: #18191c;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);\n}\n\n.ais-hover .ais-btn {\n  border-color: transparent;\n  background: #2b2d31;\n  color: #fff;\n  font-size: 12px;\n}\n\n.ais-hover .ais-btn:hover {\n  background: #fb7299;\n}\n\n.ais-hover .ais-btn-primary {\n  background: #fb7299;\n}\n\n/* 模态框 */\n.ais-modal {\n  position: fixed;\n  inset: 0;\n  z-index: 2147483002;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: rgba(0, 0, 0, 0.45);\n}\n\n.ais-modal-card {\n  width: 440px;\n  max-width: calc(100vw - 32px);\n  max-height: 80vh;\n  display: flex;\n  flex-direction: column;\n  border-radius: 14px;\n  background: #fff;\n  color: #18191c;\n  font: 13px/1.6 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  overflow: hidden;\n}\n\n.ais-modal-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 12px 16px;\n  border-bottom: 1px solid #f1f2f3;\n}\n\n.ais-modal-body {\n  flex: 1;\n  padding: 14px 16px;\n  overflow: auto;\n}\n\n.ais-modal-foot {\n  display: flex;\n  justify-content: flex-end;\n  gap: 8px;\n  padding: 12px 16px;\n  border-top: 1px solid #f1f2f3;\n}\n\n.ais-depth-line {\n  margin-bottom: 6px;\n  word-break: break-all;\n}\n\n/* Toast */\n.ais-toast {\n  position: fixed;\n  left: 50%;\n  bottom: 28px;\n  z-index: 2147483003;\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  padding: 9px 14px;\n  border-radius: 999px;\n  background: #18191c;\n  color: #fff;\n  font: 12px/1.4 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  transform: translateX(-50%);\n  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);\n}\n\n.ais-toast-btn {\n  border: 0;\n  background: transparent;\n  color: #fb7299;\n  font: inherit;\n  font-weight: 600;\n  cursor: pointer;\n}\n";
 /* ---- src/core.js ---- */
 /* B 站 AI 漫剧屏蔽器 · 规则、名单校验与合并（纯函数，可单测） */
 (function (root, factory) {
@@ -298,7 +298,9 @@
       firstSeen: asInt(raw.firstSeen, 0),
       lastSeen: asInt(raw.lastSeen, 0),
       source: raw.source === "remote" ? "remote" : "local",
-      hits: Math.max(1, asInt(raw.hits, 1))
+      hits: Math.max(1, asInt(raw.hits, 1)),
+      blocked: !!raw.blocked,
+      blockedAt: asInt(raw.blockedAt, 0)
     };
   }
 
@@ -510,7 +512,9 @@
         firstSeen: now,
         lastSeen: now,
         source: "remote",
-        hits: 1
+        hits: 1,
+        blocked: false,
+        blockedAt: 0
       };
       added.push(entry.mid);
     });
@@ -839,6 +843,107 @@
   return { createEnricher: createEnricher };
 });
 
+/* ---- src/relation.js ---- */
+/* B 站 AI 漫剧屏蔽器 · 关系操作（拉黑 / 取消拉黑）
+ * 写操作，只在用户点击时触发；不自动执行。 */
+(function (root, factory) {
+  var api = factory();
+  if (typeof window === "undefined" && typeof module === "object" && module.exports) module.exports = api;
+  root.AIS_RELATION = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  "use strict";
+
+  var ENDPOINT = "https://api.bilibili.com/x/relation/modify";
+  var BLOCK_ACT = 5;
+  var UNBLOCK_ACT = 6;
+
+  function readCookie(name) {
+    if (typeof document === "undefined" || !document.cookie) return "";
+    var match = document.cookie.match(new RegExp("(?:^|;\\s*)" + name + "=([^;]*)"));
+    return match ? decodeURIComponent(match[1]) : "";
+  }
+
+  function csrfToken() {
+    return readCookie("bili_jct");
+  }
+
+  function status() {
+    return {
+      loggedIn: !!readCookie("DedeUserID"),
+      csrf: !!csrfToken()
+    };
+  }
+
+  function describe(code, message) {
+    if (code === -101) return "账号未登录，请先登录 B 站";
+    if (code === -111) return "CSRF 校验失败，刷新页面后重试";
+    if (code === -352) return "触发 B 站风控，请稍后再试";
+    if (code === -400) return "请求参数错误";
+    if (code === -404) return "用户不存在";
+    if (code === 22003) return "目标用户不存在或已注销";
+    return message || "B 站返回错误码 " + code;
+  }
+
+  function modify(mid, act) {
+    var target = Number(mid);
+    if (!Number.isSafeInteger(target) || target <= 0) {
+      return Promise.resolve({ ok: false, error: "mid 不合法" });
+    }
+    var token = csrfToken();
+    if (!token) {
+      return Promise.resolve({ ok: false, error: "未登录或缺少 CSRF（bili_jct），请先登录 B 站并刷新" });
+    }
+    if (act === BLOCK_ACT && readCookie("DedeUserID") === String(target)) {
+      return Promise.resolve({ ok: false, error: "不能拉黑自己" });
+    }
+    var body = "fid=" + encodeURIComponent(target) + "&act=" + act + "&re_src=11&csrf=" + encodeURIComponent(token);
+    return fetch(ENDPOINT, {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body
+    })
+      .then(function (response) {
+        return response.text();
+      })
+      .then(function (text) {
+        var data = null;
+        try {
+          data = JSON.parse(text);
+        } catch (error) {
+          return { ok: false, error: "B 站返回了非 JSON 响应" };
+        }
+        if (data && data.code === 0) return { ok: true, code: 0, error: "" };
+        var code = data && typeof data.code === "number" ? data.code : -1;
+        return { ok: false, code: code, error: describe(code, data && data.message) };
+      })
+      .catch(function (error) {
+        return {
+          ok: false,
+          error: "网络错误：" + ((error && error.message) || "请求失败") + "（可在 www.bilibili.com 页面重试）"
+        };
+      });
+  }
+
+  function block(mid) {
+    return modify(mid, BLOCK_ACT);
+  }
+
+  function unblock(mid) {
+    return modify(mid, UNBLOCK_ACT);
+  }
+
+  return {
+    BLOCK_ACT: BLOCK_ACT,
+    UNBLOCK_ACT: UNBLOCK_ACT,
+    status: status,
+    csrfToken: csrfToken,
+    block: block,
+    unblock: unblock
+  };
+});
+
 /* ---- src/store.js ---- */
 /* B 站 AI 漫剧屏蔽器 · 本地存储与名单操作 */
 (function (root, factory) {
@@ -943,7 +1048,9 @@
           firstSeen: ts,
           lastSeen: ts,
           source: "local",
-          hits: 1
+          hits: 1,
+          blocked: false,
+          blockedAt: 0
         };
         mergeReasons(account.reasons, info.reasons);
         if (info.sample) account.samples.push(String(info.sample).slice(0, 160));
@@ -984,7 +1091,9 @@
         firstSeen: ts,
         lastSeen: ts,
         source: "local",
-        hits: 1
+        hits: 1,
+        blocked: false,
+        blockedAt: 0
       };
       account.status = "hidden";
       account.confidence = "manual";
@@ -997,6 +1106,15 @@
       data.accounts[mid] = account;
       save();
       return previous;
+    }
+
+    function setBlocked(mid, blocked) {
+      var account = data.accounts[mid];
+      if (!account) return false;
+      account.blocked = !!blocked;
+      account.blockedAt = blocked ? now() : 0;
+      save();
+      return true;
     }
 
     function confirmAccount(mid) {
@@ -1143,6 +1261,7 @@
       addSample: addSample,
       upsertManual: upsertManual,
       confirmAccount: confirmAccount,
+      setBlocked: setBlocked,
       removeAccount: removeAccount,
       dismissAccount: dismissAccount,
       restoreAccount: restoreAccount,
@@ -1663,9 +1782,12 @@
 
     function renderList() {
       var counts = store.counts();
+      var blockedCount = Object.keys(store.data.accounts).filter(function (mid) {
+        return store.data.accounts[mid].status === "hidden" && store.data.accounts[mid].blocked;
+      }).length;
       var summary = make("div", "ais-summary");
       summary.appendChild(make("span", "ais-summary-num", String(counts.hidden)));
-      summary.appendChild(make("span", "", " 个账号在名单中（按名称排序）"));
+      summary.appendChild(make("span", "", " 个账号在名单中（按名称排序，已拉黑 " + blockedCount + " 个）"));
       panelBody.appendChild(summary);
 
       function doSync() {
@@ -1747,6 +1869,104 @@
       addRow.appendChild(button("添加", "ais-btn-primary", submitAdd));
       panelBody.appendChild(addRow);
 
+      function doBlock(mid) {
+        actions.blockAccount(mid).then(function (result) {
+          if (result && result.ok) toast("已拉黑 mid " + mid);
+          else toast("拉黑失败：" + ((result && result.error) || "未知错误"));
+        });
+      }
+
+      function doUnblock(mid) {
+        actions.unblockAccount(mid).then(function (result) {
+          if (result && result.ok) toast("已取消拉黑 mid " + mid);
+          else toast("取消拉黑失败：" + ((result && result.error) || "未知错误"));
+        });
+      }
+
+      function startBatch(targets) {
+        var stopped = false;
+        var progress = make("p", "ais-modal-progress", "准备中…");
+        var box = make("div", "");
+        box.appendChild(progress);
+        box.appendChild(make("p", "ais-modal-note", "每 2 秒拉黑一个，可随时停止；已成功的账号会立刻写入本地记录。"));
+        openModal("正在批量拉黑", box, [
+          {
+            label: "停止",
+            onClick: function () {
+              stopped = true;
+              toast("已请求停止，当前请求完成后退出");
+            }
+          }
+        ]);
+        actions
+          .blockMany(targets, {
+            interval: 2000,
+            shouldStop: function () {
+              return stopped;
+            },
+            onProgress: function (p) {
+              progress.textContent =
+                "已处理 " +
+                p.done +
+                " / " +
+                p.total +
+                " · 成功 " +
+                p.blocked +
+                " · 失败 " +
+                p.failed +
+                (p.lastError ? " · " + p.lastError : "");
+            }
+          })
+          .then(function (result) {
+            closeModal();
+            if (result && result.riskControlled) toast("触发风控，已停止（成功 " + result.blocked + " 个）");
+            else if (result && result.stopped) toast("已停止（成功 " + result.blocked + " 个）");
+            else toast("拉黑完成：成功 " + (result ? result.blocked : 0) + " 个" + (result && result.failed ? "，失败 " + result.failed + " 个" : ""));
+            refresh();
+          });
+      }
+
+      function confirmBatch() {
+        var targets = hiddenEntries(listQuery)
+          .filter(function (item) {
+            return !item.account.blocked;
+          })
+          .map(function (item) {
+            return item.mid;
+          });
+        if (!targets.length) {
+          toast("当前列表没有未拉黑的账号");
+          return;
+        }
+        var status = actions.relationStatus();
+        if (!status.loggedIn || !status.csrf) {
+          toast("请先登录 B 站，再批量拉黑");
+          return;
+        }
+        var box = make("div", "");
+        box.appendChild(
+          make("p", "", "将拉黑 " + targets.length + " 个未拉黑账号，每 2 秒一个，预计约 " + Math.ceil((targets.length * 2) / 60) + " 分钟。")
+        );
+        box.appendChild(make("p", "ais-modal-note", "这是真实的账号操作：调用 B 站官方「加入黑名单」接口。触发风控会自动停止，中途可随时停止。"));
+        openModal("批量拉黑", box, [
+          {
+            label: "开始拉黑",
+            primary: true,
+            onClick: function () {
+              startBatch(targets);
+            }
+          },
+          { label: "取消", onClick: closeModal }
+        ]);
+      }
+
+      var unblockedCount = hiddenEntries(listQuery).filter(function (item) {
+        return !item.account.blocked;
+      }).length;
+      var batchRow = make("div", "ais-batch-row");
+      batchRow.appendChild(button("批量拉黑未拉黑账号（" + unblockedCount + "）", "ais-btn-danger ais-btn-wide", confirmBatch));
+      panelBody.appendChild(batchRow);
+
       var rowsBox = make("div", "ais-list-rows");
       var pagerBox = make("div", "ais-pager");
       panelBody.appendChild(rowsBox);
@@ -1784,14 +2004,29 @@
         if (listPage > pages - 1) listPage = pages - 1;
         items.slice(listPage * LIST_PAGE_SIZE, (listPage + 1) * LIST_PAGE_SIZE).forEach(function (item) {
           var label = item.account.confidence === "auto" ? "自动" : item.account.source === "remote" ? "订阅" : "手动";
-          rowsBox.appendChild(
-            row(item.name, label + " · mid " + item.mid, [
-              button("移除", "", function () {
-                actions.dismiss(item.mid);
-                toast("已移除并加入白名单");
+          var blocked = !!item.account.blocked;
+          var meta = (blocked ? "已拉黑" : "未拉黑") + " · " + label + " · mid " + item.mid;
+          var side = [];
+          if (blocked) {
+            side.push(
+              button("取消拉黑", "", function () {
+                doUnblock(item.mid);
               })
-            ])
+            );
+          } else {
+            side.push(
+              button("拉黑", "ais-btn-danger", function () {
+                doBlock(item.mid);
+              })
+            );
+          }
+          side.push(
+            button("移除", "", function () {
+              actions.dismiss(item.mid);
+              toast("已移除并加入白名单");
+            })
           );
+          rowsBox.appendChild(row(item.name, meta, side));
         });
         var prev = button("上一页", "", function () {
           listPage -= 1;
@@ -2023,8 +2258,9 @@
   var storeApi = globalThis.AIS_STORE;
   var domApi = globalThis.AIS_DOM;
   var apiApi = globalThis.AIS_API;
+  var relationApi = globalThis.AIS_RELATION;
   var uiApi = globalThis.AIS_UI;
-  if (!core || !surfaces || !storeApi || !domApi || !apiApi || !uiApi) return;
+  if (!core || !surfaces || !storeApi || !domApi || !apiApi || !relationApi || !uiApi) return;
 
   var surface = surfaces.pick(window.location);
   if (!surface) return;
@@ -2387,6 +2623,85 @@
     return { ok: true };
   }
 
+  function blockAccount(mid) {
+    var account = store.getAccount(mid);
+    if (!account) return Promise.resolve({ ok: false, error: "账号不在名单中" });
+    return relationApi.block(mid).then(function (result) {
+      if (result && result.ok) {
+        store.setBlocked(mid, true);
+        if (ui) ui.refresh(true);
+      }
+      return result;
+    });
+  }
+
+  function unblockAccount(mid) {
+    var account = store.getAccount(mid);
+    if (!account) return Promise.resolve({ ok: false, error: "账号不在名单中" });
+    return relationApi.unblock(mid).then(function (result) {
+      if (result && result.ok) {
+        store.setBlocked(mid, false);
+        if (ui) ui.refresh(true);
+      }
+      return result;
+    });
+  }
+
+  function blockMany(mids, options) {
+    var opts = options || {};
+    var list = (mids || []).filter(function (mid) {
+      return Number.isSafeInteger(mid) && mid > 0;
+    });
+    var index = 0;
+    var blocked = 0;
+    var failed = 0;
+    var errors = [];
+    var riskControlled = false;
+    return new Promise(function (resolve) {
+      function next() {
+        if (opts.shouldStop && opts.shouldStop()) {
+          if (ui) ui.refresh(true);
+          resolve({ ok: true, blocked: blocked, failed: failed, stopped: true, riskControlled: riskControlled, errors: errors });
+          return;
+        }
+        if (index >= list.length) {
+          if (ui) ui.refresh(true);
+          resolve({ ok: true, blocked: blocked, failed: failed, stopped: false, riskControlled: riskControlled, errors: errors });
+          return;
+        }
+        var mid = list[index];
+        index += 1;
+        relationApi.block(mid).then(function (result) {
+          if (result && result.ok) {
+            blocked += 1;
+            store.setBlocked(mid, true);
+          } else {
+            failed += 1;
+            errors.push({ mid: mid, error: (result && result.error) || "未知错误" });
+            if (result && result.code === -352) riskControlled = true;
+          }
+          if (opts.onProgress) {
+            opts.onProgress({
+              done: index,
+              total: list.length,
+              blocked: blocked,
+              failed: failed,
+              riskControlled: riskControlled,
+              lastError: (result && result.error) || ""
+            });
+          }
+          if (riskControlled) {
+            if (ui) ui.refresh(true);
+            resolve({ ok: false, blocked: blocked, failed: failed, stopped: true, riskControlled: true, errors: errors });
+            return;
+          }
+          setTimeout(next, opts.interval || 2000);
+        });
+      }
+      next();
+    });
+  }
+
   function saveSetting(name, value) {
     if (!store.setSetting(name, value)) return;
     if (name === "autoHideHigh" || name === "mediumBadge" || name === "showPlaceholder" || name === "genreMode") {
@@ -2460,6 +2775,12 @@
     previewImport: previewImport,
     applyImport: applyImport,
     addManual: addManual,
+    blockAccount: blockAccount,
+    unblockAccount: unblockAccount,
+    blockMany: blockMany,
+    relationStatus: function () {
+      return relationApi.status();
+    },
     syncRemote: syncRemote
   };
 

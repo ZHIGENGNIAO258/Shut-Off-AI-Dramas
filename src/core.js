@@ -273,7 +273,9 @@
       firstSeen: asInt(raw.firstSeen, 0),
       lastSeen: asInt(raw.lastSeen, 0),
       source: raw.source === "remote" ? "remote" : "local",
-      hits: Math.max(1, asInt(raw.hits, 1))
+      hits: Math.max(1, asInt(raw.hits, 1)),
+      blocked: !!raw.blocked,
+      blockedAt: asInt(raw.blockedAt, 0)
     };
   }
 
@@ -485,7 +487,9 @@
         firstSeen: now,
         lastSeen: now,
         source: "remote",
-        hits: 1
+        hits: 1,
+        blocked: false,
+        blockedAt: 0
       };
       added.push(entry.mid);
     });

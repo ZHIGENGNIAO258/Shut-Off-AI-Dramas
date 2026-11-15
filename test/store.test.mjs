@@ -56,8 +56,7 @@ test("误伤会加入白名单与墓碑", () => {
   assert.ok(store.data.tombstones[300] > 0);
 });
 
-test("确认待定账号后进入名单", () => {
-  const store = makeStore();
+test("确认待定账号后进入名单", () => {  const store = makeStore();
   store.noteAutoHit(400, { name: "某号", reasons: ["标签:AI影视片场"] });
   assert.equal(store.confirmAccount(400), true);
   assert.equal(store.getAccount(400).status, "hidden");
@@ -163,4 +162,19 @@ test("旧账号没有标题样本时可以补样本，且不影响命中次数",
   assert.equal(store.getAccount(900).hits, hits);
   assert.equal(store.addSample(900, "《潮尸》第一集"), false, "重复样本不重复写入");
   assert.equal(store.addSample(901, "不存在的账号"), false);
+});
+
+test("拉黑状态按 mid 保存，取消后清除时间戳", () => {
+  const store = makeStore();
+  store.upsertManual(700, { name: "拉黑号" });
+  assert.equal(store.getAccount(700).blocked, false, "新账号默认未拉黑");
+
+  assert.equal(store.setBlocked(700, true), true);
+  assert.equal(store.getAccount(700).blocked, true);
+  assert.ok(store.getAccount(700).blockedAt > 0);
+
+  assert.equal(store.setBlocked(700, false), true);
+  assert.equal(store.getAccount(700).blocked, false);
+  assert.equal(store.getAccount(700).blockedAt, 0);
+  assert.equal(store.setBlocked(999, true), false, "不存在的账号返回 false");
 });

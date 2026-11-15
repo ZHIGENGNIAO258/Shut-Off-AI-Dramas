@@ -10,8 +10,9 @@
   var storeApi = globalThis.AIS_STORE;
   var domApi = globalThis.AIS_DOM;
   var apiApi = globalThis.AIS_API;
+  var relationApi = globalThis.AIS_RELATION;
   var uiApi = globalThis.AIS_UI;
-  if (!core || !surfaces || !storeApi || !domApi || !apiApi || !uiApi) return;
+  if (!core || !surfaces || !storeApi || !domApi || !apiApi || !relationApi || !uiApi) return;
 
   var surface = surfaces.pick(window.location);
   if (!surface) return;
@@ -374,6 +375,85 @@
     return { ok: true };
   }
 
+  function blockAccount(mid) {
+    var account = store.getAccount(mid);
+    if (!account) return Promise.resolve({ ok: false, error: "账号不在名单中" });
+    return relationApi.block(mid).then(function (result) {
+      if (result && result.ok) {
+        store.setBlocked(mid, true);
+        if (ui) ui.refresh(true);
+      }
+      return result;
+    });
+  }
+
+  function unblockAccount(mid) {
+    var account = store.getAccount(mid);
+    if (!account) return Promise.resolve({ ok: false, error: "账号不在名单中" });
+    return relationApi.unblock(mid).then(function (result) {
+      if (result && result.ok) {
+        store.setBlocked(mid, false);
+        if (ui) ui.refresh(true);
+      }
+      return result;
+    });
+  }
+
+  function blockMany(mids, options) {
+    var opts = options || {};
+    var list = (mids || []).filter(function (mid) {
+      return Number.isSafeInteger(mid) && mid > 0;
+    });
+    var index = 0;
+    var blocked = 0;
+    var failed = 0;
+    var errors = [];
+    var riskControlled = false;
+    return new Promise(function (resolve) {
+      function next() {
+        if (opts.shouldStop && opts.shouldStop()) {
+          if (ui) ui.refresh(true);
+          resolve({ ok: true, blocked: blocked, failed: failed, stopped: true, riskControlled: riskControlled, errors: errors });
+          return;
+        }
+        if (index >= list.length) {
+          if (ui) ui.refresh(true);
+          resolve({ ok: true, blocked: blocked, failed: failed, stopped: false, riskControlled: riskControlled, errors: errors });
+          return;
+        }
+        var mid = list[index];
+        index += 1;
+        relationApi.block(mid).then(function (result) {
+          if (result && result.ok) {
+            blocked += 1;
+            store.setBlocked(mid, true);
+          } else {
+            failed += 1;
+            errors.push({ mid: mid, error: (result && result.error) || "未知错误" });
+            if (result && result.code === -352) riskControlled = true;
+          }
+          if (opts.onProgress) {
+            opts.onProgress({
+              done: index,
+              total: list.length,
+              blocked: blocked,
+              failed: failed,
+              riskControlled: riskControlled,
+              lastError: (result && result.error) || ""
+            });
+          }
+          if (riskControlled) {
+            if (ui) ui.refresh(true);
+            resolve({ ok: false, blocked: blocked, failed: failed, stopped: true, riskControlled: true, errors: errors });
+            return;
+          }
+          setTimeout(next, opts.interval || 2000);
+        });
+      }
+      next();
+    });
+  }
+
   function saveSetting(name, value) {
     if (!store.setSetting(name, value)) return;
     if (name === "autoHideHigh" || name === "mediumBadge" || name === "showPlaceholder" || name === "genreMode") {
@@ -447,6 +527,12 @@
     previewImport: previewImport,
     applyImport: applyImport,
     addManual: addManual,
+    blockAccount: blockAccount,
+    unblockAccount: unblockAccount,
+    blockMany: blockMany,
+    relationStatus: function () {
+      return relationApi.status();
+    },
     syncRemote: syncRemote
   };
 

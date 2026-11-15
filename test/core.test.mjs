@@ -300,3 +300,14 @@ test("报告保留的真漫剧账号仍然判高置信", () => {
     assert.equal(core.scoreCard({ name, title, context: "漫剧" }).confidence, "high", name + " 应判高置信");
   }
 });
+
+test("拉黑字段会被归一化保留，旧数据默认未拉黑", () => {
+  const blocked = core.normalizeAccount({ status: "hidden", blocked: true, blockedAt: 12345 });
+  assert.equal(blocked.blocked, true);
+  assert.equal(blocked.blockedAt, 12345);
+  const legacy = core.normalizeAccount({ status: "hidden" });
+  assert.equal(legacy.blocked, false);
+  assert.equal(legacy.blockedAt, 0);
+  const remote = core.mergeAccounts({}, [{ mid: 11, name: "x", confidence: "confirmed", evidence: [], samples: [] }], {});
+  assert.equal(remote.accounts[11].blocked, false);
+});

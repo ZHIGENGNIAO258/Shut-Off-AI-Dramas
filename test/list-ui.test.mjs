@@ -51,9 +51,10 @@ function makeSeed() {
   };
 }
 
-async function boot(seed) {
+async function boot(seed, options) {
   const code = fs.readFileSync(builtFile, "utf8");
   const saved = [];
+  const opts = options || {};
   const dom = new JSDOM("<!doctype html><html><head></head><body><div class='feed2'></div></body></html>", {
     url: "https://www.bilibili.com/",
     runScripts: "dangerously",
@@ -63,8 +64,14 @@ async function boot(seed) {
         key === "ais:data" ? JSON.parse(JSON.stringify(seed)) : fallback;
       window.GM_setValue = (key, value) => saved.push({ key, value });
       window.GM_registerMenuCommand = () => {};
+      window.fetch = () =>
+        Promise.resolve({
+          text: () => Promise.resolve(opts.fetchBody || '{"code":0}')
+        });
     }
   });
+  dom.window.document.cookie = "bili_jct=test-token";
+  dom.window.document.cookie = "DedeUserID=1";
   dom.window.eval(code);
   await new Promise((resolve) => setTimeout(resolve, 120));
   const doc = dom.window.document;
@@ -188,3 +195,50 @@ test("待确认页：显示 mid 和视频标题", async (t) => {
   );
   assert.match(doc.querySelector(".ais-panel-foot").textContent, /v\d+\.\d+\.\d+/, "页脚应显示版本号");
 });
+
+function rowByTitle(doc, name) {
+  return [...doc.querySelectorAll(".ais-list-rows .ais-row")].find(
+    (row) => row.querySelector(".ais-row-title").textContent === name
+  );
+}
+
+test("名单页：显示拉黑字段，支持单个拉黑与批量入口", async (t) => {
+  if (!fs.existsSync(builtFile)) {
+    t.skip("dist 不存在，先运行 node build.mjs");
+    return;
+  }
+  const seed = makeSeed();
+  seed.accounts[1001].blocked = true;
+  seed.accounts[1001].blockedAt = 123;
+  const { dom, doc, saved } = await boot(seed);
+  t.after(() => {
+    try {
+      dom.window.close();
+    } catch (error) {
+      /* ignore */
+    }
+  });
+
+  openTab(doc, "list");
+  assert.equal(rowByTitle(doc, "测试号 01").querySelector(".ais-row-sub").textContent.includes("已拉黑"), true);
+  assert.equal(rowByTitle(doc, "测试号 02").querySelector(".ais-row-sub").textContent.includes("未拉黑"), true);
+
+  rowByTitle(doc, "测试号 02").querySelector(".ais-btn-danger").click();
+  await new Promise((resolve) => setTimeout(resolve, 80));
+
+  const last = saved[saved.length - 1];
+  assert.equal(last.value.accounts[1002].blocked, true, "拉黑成功后写入本地");
+  assert.equal(rowByTitle(doc, "测试号 02").querySelector(".ais-row-sub").textContent.includes("已拉黑"), true);
+  assert.equal(saved[saved.length - 1].value.accounts[1002].blocked, true);
+
+  const batchButton = [...doc.querySelectorAll(".ais-batch-row .ais-btn")][0];
+  assert.match(batchButton.textContent, /批量拉黑未拉黑账号（33）/);
+  batchButton.click();
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.equal(doc.querySelector(".ais-modal").hidden, false);
+  assert.match(doc.querySelector(".ais-modal-body").textContent, /将拉黑 33 个未拉黑账号/);
+
+  const cancel = [...doc.querySelectorAll(".ais-modal-foot .ais-btn")].find((btn) => btn.textContent === "取消");
+  cancel.click();
+});
+

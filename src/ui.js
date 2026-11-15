@@ -392,9 +392,12 @@
 
     function renderList() {
       var counts = store.counts();
+      var blockedCount = Object.keys(store.data.accounts).filter(function (mid) {
+        return store.data.accounts[mid].status === "hidden" && store.data.accounts[mid].blocked;
+      }).length;
       var summary = make("div", "ais-summary");
       summary.appendChild(make("span", "ais-summary-num", String(counts.hidden)));
-      summary.appendChild(make("span", "", " 个账号在名单中（按名称排序）"));
+      summary.appendChild(make("span", "", " 个账号在名单中（按名称排序，已拉黑 " + blockedCount + " 个）"));
       panelBody.appendChild(summary);
 
       function doSync() {
@@ -476,6 +479,104 @@
       addRow.appendChild(button("添加", "ais-btn-primary", submitAdd));
       panelBody.appendChild(addRow);
 
+      function doBlock(mid) {
+        actions.blockAccount(mid).then(function (result) {
+          if (result && result.ok) toast("已拉黑 mid " + mid);
+          else toast("拉黑失败：" + ((result && result.error) || "未知错误"));
+        });
+      }
+
+      function doUnblock(mid) {
+        actions.unblockAccount(mid).then(function (result) {
+          if (result && result.ok) toast("已取消拉黑 mid " + mid);
+          else toast("取消拉黑失败：" + ((result && result.error) || "未知错误"));
+        });
+      }
+
+      function startBatch(targets) {
+        var stopped = false;
+        var progress = make("p", "ais-modal-progress", "准备中…");
+        var box = make("div", "");
+        box.appendChild(progress);
+        box.appendChild(make("p", "ais-modal-note", "每 2 秒拉黑一个，可随时停止；已成功的账号会立刻写入本地记录。"));
+        openModal("正在批量拉黑", box, [
+          {
+            label: "停止",
+            onClick: function () {
+              stopped = true;
+              toast("已请求停止，当前请求完成后退出");
+            }
+          }
+        ]);
+        actions
+          .blockMany(targets, {
+            interval: 2000,
+            shouldStop: function () {
+              return stopped;
+            },
+            onProgress: function (p) {
+              progress.textContent =
+                "已处理 " +
+                p.done +
+                " / " +
+                p.total +
+                " · 成功 " +
+                p.blocked +
+                " · 失败 " +
+                p.failed +
+                (p.lastError ? " · " + p.lastError : "");
+            }
+          })
+          .then(function (result) {
+            closeModal();
+            if (result && result.riskControlled) toast("触发风控，已停止（成功 " + result.blocked + " 个）");
+            else if (result && result.stopped) toast("已停止（成功 " + result.blocked + " 个）");
+            else toast("拉黑完成：成功 " + (result ? result.blocked : 0) + " 个" + (result && result.failed ? "，失败 " + result.failed + " 个" : ""));
+            refresh();
+          });
+      }
+
+      function confirmBatch() {
+        var targets = hiddenEntries(listQuery)
+          .filter(function (item) {
+            return !item.account.blocked;
+          })
+          .map(function (item) {
+            return item.mid;
+          });
+        if (!targets.length) {
+          toast("当前列表没有未拉黑的账号");
+          return;
+        }
+        var status = actions.relationStatus();
+        if (!status.loggedIn || !status.csrf) {
+          toast("请先登录 B 站，再批量拉黑");
+          return;
+        }
+        var box = make("div", "");
+        box.appendChild(
+          make("p", "", "将拉黑 " + targets.length + " 个未拉黑账号，每 2 秒一个，预计约 " + Math.ceil((targets.length * 2) / 60) + " 分钟。")
+        );
+        box.appendChild(make("p", "ais-modal-note", "这是真实的账号操作：调用 B 站官方「加入黑名单」接口。触发风控会自动停止，中途可随时停止。"));
+        openModal("批量拉黑", box, [
+          {
+            label: "开始拉黑",
+            primary: true,
+            onClick: function () {
+              startBatch(targets);
+            }
+          },
+          { label: "取消", onClick: closeModal }
+        ]);
+      }
+
+      var unblockedCount = hiddenEntries(listQuery).filter(function (item) {
+        return !item.account.blocked;
+      }).length;
+      var batchRow = make("div", "ais-batch-row");
+      batchRow.appendChild(button("批量拉黑未拉黑账号（" + unblockedCount + "）", "ais-btn-danger ais-btn-wide", confirmBatch));
+      panelBody.appendChild(batchRow);
+
       var rowsBox = make("div", "ais-list-rows");
       var pagerBox = make("div", "ais-pager");
       panelBody.appendChild(rowsBox);
@@ -513,14 +614,29 @@
         if (listPage > pages - 1) listPage = pages - 1;
         items.slice(listPage * LIST_PAGE_SIZE, (listPage + 1) * LIST_PAGE_SIZE).forEach(function (item) {
           var label = item.account.confidence === "auto" ? "自动" : item.account.source === "remote" ? "订阅" : "手动";
-          rowsBox.appendChild(
-            row(item.name, label + " · mid " + item.mid, [
-              button("移除", "", function () {
-                actions.dismiss(item.mid);
-                toast("已移除并加入白名单");
+          var blocked = !!item.account.blocked;
+          var meta = (blocked ? "已拉黑" : "未拉黑") + " · " + label + " · mid " + item.mid;
+          var side = [];
+          if (blocked) {
+            side.push(
+              button("取消拉黑", "", function () {
+                doUnblock(item.mid);
               })
-            ])
+            );
+          } else {
+            side.push(
+              button("拉黑", "ais-btn-danger", function () {
+                doBlock(item.mid);
+              })
+            );
+          }
+          side.push(
+            button("移除", "", function () {
+              actions.dismiss(item.mid);
+              toast("已移除并加入白名单");
+            })
           );
+          rowsBox.appendChild(row(item.name, meta, side));
         });
         var prev = button("上一页", "", function () {
           listPage -= 1;

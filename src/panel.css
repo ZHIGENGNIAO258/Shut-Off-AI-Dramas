@@ -278,6 +278,33 @@
   margin-bottom: 8px;
 }
 
+.ais-batch-row {
+  margin-bottom: 8px;
+}
+
+.ais-btn-danger {
+  border-color: #f06a94;
+  color: #d94f7a;
+}
+
+.ais-btn-danger:hover {
+  border-color: #fb7299;
+  background: #fb7299;
+  color: #fff;
+}
+
+.ais-modal-note {
+  margin: 6px 0 0;
+  color: #9499a0;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.ais-modal-progress {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
 .ais-sync {
   display: flex;
   gap: 8px;
