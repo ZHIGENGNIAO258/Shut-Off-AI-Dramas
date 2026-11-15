@@ -8,7 +8,7 @@
 
 ## 功能
 
-- 主页 `.feed-card` 卡片自动隐藏，滚动加载的新卡片也会处理。
+- 主页推荐流全部卡片自动隐藏：首屏服务端渲染的 `.feed-card`、Vue 水合与滚动追加的 `.bili-feed-card`（没有 `.feed-card` 包裹）都会处理，轮播占位区跳过。
 - 搜索页 `.video-list` 结果同样生效。
 - 动画分区 `/c/douga/` 的视频网格同样生效；顶部三行（`.head-cards` 网格，含轮播旁的卡片）也会处理，只跳过真正的轮播 slide。
 - 鼠标悬停卡片时，左上角出现一个「屏蔽」按钮。
@@ -159,7 +159,7 @@ https://cdn.jsdelivr.net/gh/ZHIGENGNIAO258/Shut-Off-AI-Dramas@main/dist/shut-off
 
 ```bash
 npm install
-npm test          # 规则 + 存储 + jsdom 适配 + 构建产物集成测试（68 项）
+npm test          # 规则 + 存储 + jsdom 适配 + 构建产物集成测试（73 项）
 npm run build     # 生成 dist/shut-off-ai-dramas.user.js
 npm run verify    # 测试 + 构建 + 名单校验
 npm run demo      # 生成 docs/demo.html 界面预览（模拟卡片，无真实数据）

@@ -62,6 +62,20 @@
     };
   }
 
+  // 首页有两种卡片：
+  //   服务端渲染的首屏：.feed-card > .bili-feed-card > .bili-video-card
+  //   Vue 水合/滚动追加：      .bili-feed-card > .bili-video-card（没有 .feed-card 包裹）
+  //   骨架占位：                .bili-video-card 直接作为网格单元
+  // 隐藏单元要落在网格单元上：优先 .feed-card，其次 .bili-feed-card，最后卡片自身。
+  var HOME_SELECTOR = ".feed-card, .bili-feed-card, .bili-video-card";
+
+  function homeWrapperOf(target) {
+    if (!target || typeof target.closest !== "function") return null;
+    var cell = target.closest(".feed-card, .bili-feed-card, .bili-video-card");
+    if (!cell) return null;
+    return cell.closest(".feed-card") || cell.closest(".bili-feed-card") || cell;
+  }
+
   var HOME = {
     id: "home",
     label: "主页推荐",
@@ -72,12 +86,16 @@
         (location.pathname === "/" || location.pathname === "/index.html")
       );
     },
-    cardSelector: ".feed-card",
+    cardSelector: HOME_SELECTOR,
     getCards: function (root) {
       return Array.prototype.slice.call(root.querySelectorAll(this.cardSelector));
     },
     wrapperOf: function (target) {
-      return target && typeof target.closest === "function" ? target.closest(this.cardSelector) : null;
+      return homeWrapperOf(target);
+    },
+    // 轮播/骨架区只用作占位，隐藏会打乱布局
+    ignored: function (element) {
+      return !!(element && element.closest && element.closest(".recommended-swipe"));
     },
     read: readCard
   };
