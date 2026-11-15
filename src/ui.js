@@ -21,6 +21,8 @@
     var LIST_PAGE_SIZE = 30;
     var listQuery = "";
     var listPage = 0;
+    var modalLocked = false;
+    var batchRunning = false;
 
     function make(tag, className, text) {
       var el = doc.createElement(tag);
@@ -121,6 +123,10 @@
     var modalHead = make("div", "ais-modal-head");
     var modalTitle = make("strong", "", "");
     var modalClose = button("×", "ais-icon-btn", function () {
+      if (modalLocked) {
+        toast("拉黑进行中，请先点「停止拉黑」");
+        return;
+      }
       closeModal();
     });
     modalHead.appendChild(modalTitle);
@@ -132,7 +138,12 @@
     modalCard.appendChild(modalFoot);
     modal.appendChild(modalCard);
     modal.addEventListener("click", function (event) {
-      if (event.target === modal) closeModal();
+      if (event.target !== modal) return;
+      if (modalLocked) {
+        toast("拉黑进行中，请先点「停止拉黑」");
+        return;
+      }
+      closeModal();
     });
 
     /* ---------- Toast ---------- */
@@ -161,13 +172,17 @@
       (buttons || []).forEach(function (item) {
         modalFoot.appendChild(button(item.label, item.primary ? "ais-btn-primary" : "", item.onClick));
       });
+      modalClose.style.display = "";
       modal.hidden = false;
     }
 
-    function closeModal() {
+    function closeModal(force) {
+      if (modalLocked && !force) return false;
       modal.hidden = true;
+      modalClose.style.display = "";
       clear(modalBody);
       clear(modalFoot);
+      return true;
     }
 
     function toast(message, undo) {
@@ -494,20 +509,57 @@
       }
 
       function startBatch(targets) {
+        if (batchRunning) {
+          toast("已有批量拉黑任务在运行，请先停止");
+          return;
+        }
+        batchRunning = true;
+        modalLocked = true;
         var stopped = false;
+        var stopButton = null;
         var progress = make("p", "ais-modal-progress", "准备中…");
         var box = make("div", "");
         box.appendChild(progress);
-        box.appendChild(make("p", "ais-modal-note", "每 2 秒拉黑一个，可随时停止；已成功的账号会立刻写入本地记录。"));
+        box.appendChild(
+          make("p", "ais-modal-note", "每 2 秒拉黑一个，可随时停止；已成功的账号会立刻写入本地记录。停止前弹窗不会关闭。")
+        );
         openModal("正在批量拉黑", box, [
           {
-            label: "停止",
+            label: "停止拉黑",
             onClick: function () {
               stopped = true;
+              if (stopButton) {
+                stopButton.disabled = true;
+                stopButton.textContent = "正在停止…";
+              }
               toast("已请求停止，当前请求完成后退出");
             }
           }
         ]);
+        modalClose.style.display = "none";
+        stopButton = modalFoot.querySelector("button");
+
+        function finish(result, error) {
+          batchRunning = false;
+          modalLocked = false;
+          closeModal(true);
+          if (error) {
+            toast("批量拉黑异常终止：" + ((error && error.message) || "未知错误"));
+          } else if (result && result.riskControlled) {
+            toast("触发风控，已停止（成功 " + result.blocked + " 个）");
+          } else if (result && result.stopped) {
+            toast("已停止（成功 " + result.blocked + " 个）");
+          } else {
+            toast(
+              "拉黑完成：成功 " +
+                (result ? result.blocked : 0) +
+                " 个" +
+                (result && result.failed ? "，失败 " + result.failed + " 个" : "")
+            );
+          }
+          refresh();
+        }
+
         actions
           .blockMany(targets, {
             interval: 2000,
@@ -528,15 +580,18 @@
             }
           })
           .then(function (result) {
-            closeModal();
-            if (result && result.riskControlled) toast("触发风控，已停止（成功 " + result.blocked + " 个）");
-            else if (result && result.stopped) toast("已停止（成功 " + result.blocked + " 个）");
-            else toast("拉黑完成：成功 " + (result ? result.blocked : 0) + " 个" + (result && result.failed ? "，失败 " + result.failed + " 个" : ""));
-            refresh();
+            finish(result, null);
+          })
+          .catch(function (error) {
+            finish(null, error);
           });
       }
 
       function confirmBatch() {
+        if (batchRunning) {
+          toast("已有批量拉黑任务在运行，请先停止");
+          return;
+        }
         var targets = hiddenEntries(listQuery)
           .filter(function (item) {
             return !item.account.blocked;
@@ -829,8 +884,13 @@
       var tagName = event.target && event.target.tagName ? event.target.tagName.toLowerCase() : "";
       if (tagName === "input" || tagName === "textarea" || tagName === "select") return;
       if (event.key === "Escape") {
-        if (!modal.hidden) closeModal();
-        else if (markMode) setMarkMode(false);
+        if (!modal.hidden) {
+          if (modalLocked) {
+            toast("拉黑进行中，请先点「停止拉黑」");
+            return;
+          }
+          closeModal();
+        } else if (markMode) setMarkMode(false);
         else if (!panel.hidden) panel.hidden = true;
         return;
       }

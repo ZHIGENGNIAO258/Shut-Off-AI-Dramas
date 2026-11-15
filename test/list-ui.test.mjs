@@ -242,3 +242,50 @@ test("名单页：显示拉黑字段，支持单个拉黑与批量入口", async
   cancel.click();
 });
 
+
+test("批量拉黑：运行中弹窗不会被误关，停止后才关闭", async (t) => {
+  if (!fs.existsSync(builtFile)) {
+    t.skip("dist 不存在，先运行 node build.mjs");
+    return;
+  }
+  const { dom, doc } = await boot(makeSeed());
+  t.after(() => {
+    try {
+      dom.window.close();
+    } catch (error) {
+      /* ignore */
+    }
+  });
+  const tick = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  openTab(doc, "list");
+  doc.querySelector(".ais-batch-row .ais-btn").click();
+  await tick(30);
+  const start = [...doc.querySelectorAll(".ais-modal-foot .ais-btn")].find((btn) => btn.textContent === "开始拉黑");
+  assert.ok(start, "应有开始拉黑按钮");
+  start.click();
+  await tick(150);
+
+  const modal = doc.querySelector(".ais-modal");
+  assert.equal(modal.hidden, false);
+  assert.equal(doc.querySelector(".ais-modal-head .ais-icon-btn").style.display, "none", "运行中隐藏关闭按钮");
+
+  // 点击遮罩不应关闭
+  modal.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+  assert.equal(modal.hidden, false, "点遮罩不能关闭");
+  // Esc 不应关闭
+  doc.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  assert.equal(modal.hidden, false, "Esc 不能关闭");
+
+  // 运行中再次点批量拉黑不会新开进程
+  doc.querySelector(".ais-batch-row .ais-btn").click();
+  await tick(20);
+  assert.equal(doc.querySelector(".ais-toast").textContent.includes("已有批量拉黑任务"), true);
+
+  const stop = [...doc.querySelectorAll(".ais-modal-foot .ais-btn")].find((btn) => btn.textContent === "停止拉黑");
+  assert.ok(stop, "应有停止按钮");
+  stop.click();
+  assert.equal(stop.disabled, true, "停止按钮点击后禁用");
+  await tick(2300);
+  assert.equal(modal.hidden, true, "停止后弹窗关闭");
+});
