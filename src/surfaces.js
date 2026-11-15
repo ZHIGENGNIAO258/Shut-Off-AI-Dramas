@@ -15,6 +15,7 @@
   }
 
   function cleanName(value) {
+    if (core && typeof core.cleanName === "function") return core.cleanName(value);
     return value.replace(/\s*·\s*\d{1,2}-\d{1,2}\s*$/, "").trim();
   }
 

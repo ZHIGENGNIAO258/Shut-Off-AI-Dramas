@@ -25,25 +25,36 @@
   };
 
   var RE = {
+    cleanSuffix: /\s*·\s*(?:刚刚|\d+\s*(?:秒|分钟|小时|天|周|个月|年)前|昨天|前天|(?:\d{4}-)?\d{1,2}-\d{1,2})\s*$/,
     name: /AIGC|AI\s*[\u4e00-\u9fa5]{0,4}?(?:漫剧|短剧|动漫|动画|剧场|影视|片场|创作|工作室)|人工智能/i,
     title: /AIGC|AI\s*[\u4e00-\u9fa5]{0,4}?(?:漫剧|短剧|生成|制作|绘制|动画|影视|原创|改编|视频)|人工智能\s*(?:生成|创作|制作)|生成式/i,
     sign: /AIGC|AI\s*[\u4e00-\u9fa5]{0,4}?(?:创作|动画|漫剧|短剧|视频|影视|生成|制作)|人工智能|生成式/i,
     tag: /^(?:AIGC|AI|人工智能|生成式|B站AI影视片场)$|AI\s*(?:动画|漫剧|短剧|视频|影视|作品|生成|片场)/i,
-    genre: /漫剧|短剧|剧集|剧场|合集|一口气看完|上集|下集|上篇|下篇|第\s*[0-9０-９一二三四五六七八九十百]+\s*[集话]/,
+    // 只认明确的漫剧/短剧体裁词；普通「第X集/合集」交给连载规则，避免双重计分
+    genre: /漫剧|短剧|动态漫|沙雕漫|剧集/,
     nameGenre: /剧场|短剧|漫剧|漫馆|制片厂|追漫|影业|好剧|番剧局|小剧场|漫剪|漫动画/,
     nameWeak: /动漫|漫画|说漫|看剧|看漫|推剧|放映厅|听书|漫社|漫城|漫听|漫梗|国漫/,
-    serial:
-      /(?:第\s*)?[\d一二三四五六七八九十百]+\s*(?:[-–—~～+＋至]\s*[\d一二三四五六七八九十百]+\s*)?[季集话]|EP\s*\d+|完整版|全集|荃集|成片|合集|大合集|大结局|一口气(?:看完|畅享|爽看|追完)|已完结|完结|超前(?:试看|点映)|独家限免|抢先(?:看|版)?|未删减|无删减|超清|勉费|免废/,
+    // 强短剧连载模板：跨季/跨集、防审黑话、一口气看完、未删减等营销号套路
+    serialStrong:
+      /(?:第\s*)?[\d一二三四五六七八九十百]+\s*[-–—~～+＋至]\s*[\d一二三四五六七八九十百]+\s*[季集]|荃集|勉费|免废|无雾|未删减|无删减|一口气(?:看完|畅享|爽看|追完)|超前(?:试看|点映)|独家限免|(?:\d+|一|两|三|四|五|六|七|八|九|十)\s*小时(?:合集|大合集|完结|爽看)/,
+    // 弱连载模板：正经番剧、游戏实况、漫画解说也会用，只给 1 分且不算强特征
+    serialWeak:
+      /(?:第\s*)?[\d一二三四五六七八九十百]+\s*[季集话]|EP\s*\d+|完整版|全集|成片|合集|大合集|大结局|已完结|完结|抢先(?:看|版)?|上集|下集|上篇|下篇/,
     tagGenre: /漫剧|短剧|动态漫|仿真人|AI真人|AI原创|AIGC|沙雕漫|2D漫|爆款短剧|热门漫剧|一口气看完漫剧|短剧推荐|短剧上新|AI动画|AI视频/i,
-    signGenre: /漫剧|短剧|剧场|漫馆|每日更新|追更|充电|官方账号/,
-    trope: /重生|穿越|逆袭|总裁|弃子|修仙|系统|师尊|复仇|千金|退婚|契约|闪婚|王妃|赘婿|战神|神医|龙王|真假千金|虐渣|团宠|爽文|男频|女频|首富|下山|反派|女主|男主|病娇|觉醒|异能|末世|末日|穿书|马甲|豪门|夫人|小姐|王爷|皇帝|太子|神豪|废土|丧尸|求生|绑定/,
-    official: /^(哔哩哔哩|腾讯视频|腾讯动漫|爱奇艺|爱奇艺动漫|优酷|优酷动漫|芒果TV|芒果动漫|快看漫画|央视|新华社|人民日报|CCTV)/,
+    signGenre: /漫剧|短剧|剧场|漫馆|每日更新|追更|充电/,
+    trope: /重生|穿越|逆袭|总裁|弃子|修仙|系统|师尊|复仇|千金|退婚|契约|闪婚|王妃|赘婿|战神|神医|龙王|真假千金|虐渣|团宠|爽文|男频|女频|首富|下山|反派|病娇|觉醒|异能|末世|末日|穿书|马甲|豪门|王爷|太子|神豪|废土|丧尸|求生|绑定/,
+    official: /^(哔哩哔哩|腾讯视频|腾讯动漫|爱奇艺|爱奇艺动漫|优酷|优酷动漫|芒果TV|芒果动漫|快看漫画|央视|新华社|人民日报|CCTV|崩坏星穹铁道|崩坏3|原神|绝区零|明日方舟|王者荣耀)/,
     vetoStrong:
-      /教程|教学|测评|评测|入门到|从零|实战|工具|软件|插件|脚本|编程|代码|部署|接口|API|工作流|ComfyUI|Stable\s*Diffusion|SDXL|Midjourney|可灵|即梦|海螺|Runway|Sora|Pika|豆包|通义|文心|混元|大模型|AI\s*绘画|AI\s*配音|开源|论文/i,
-    vetoTech: /解析|原理|技术|模型|指南|微调|LoRA/,
+      /教程|教学|测评|评测|入门到|从零|实战|工具|软件|插件|脚本|编程|代码|部署|接口|API|工作流|ComfyUI|Stable\s*Diffusion|SDXL|Midjourney|可灵|即梦|海螺|Runway|Sora|Pika|豆包|通义|文心|混元|大模型|AI\s*绘画|AI\s*配音|开源|论文|陷阱|骗局|割韭菜|亏钱|内幕|揭秘|从夯到拉|锐评/i,
+    vetoTech: /解析|原理|技术|模型|指南|微调|LoRA|行业|商业|访谈/,
     aiContext: /AIGC|AI|人工智能|生成式|生成/i,
-    negative: /影视解说|解说|影评|拉片|盘点|混剪|reaction|直播回放|复盘|速讲|讲解|剪辑/i
+    negative:
+      /影视解说|解说|影评|漫评|漫谈|杂谈|吐槽|拉片|盘点|混剪|reaction|直播回放|复盘|速讲|讲解|剪辑|汉化组|字幕组|中文字幕|熟肉|生肉|烤肉|官方PV|正式PV|先导PV|预告|剧场版|TV版|重映版|手书|MMD|广播剧|观影体|同人扶持计划|生日贺图|把玩|深度解析/i
   };
+
+  function cleanName(value) {
+    return typeof value === "string" ? value.replace(RE.cleanSuffix, "").trim() : "";
+  }
 
   function text(value) {
     return typeof value === "string" ? value.trim() : "";
@@ -61,7 +72,7 @@
    * @returns {{score:number,confidence:"high"|"medium"|"none",vetoed:boolean,reasons:string[]}}
    */
   function scoreCard(input) {
-    var name = text(input && input.name);
+    var name = cleanName(text(input && input.name));
     var title = text(input && input.title);
     var sign = text(input && input.sign);
     var tags = Array.isArray(input && input.tags) ? input.tags : [];
@@ -71,7 +82,7 @@
     var reasons = [];
 
     if (RE.official.test(name)) {
-      return { score: 0, confidence: "none", vetoed: false, reasons: ["官方账号白名单"] };
+      return { score: 0, confidence: "none", vetoed: false, capped: false, reasons: ["官方账号白名单"] };
     }
 
     var aiContext = RE.aiContext.test(title + " " + name);
@@ -81,7 +92,7 @@
       (aiContext &&
         ((title.match(RE.vetoTech) || [])[0] || (name.match(RE.vetoTech) || [])[0]));
     if (vetoHit) {
-      return { score: 0, confidence: "none", vetoed: true, reasons: ["否决:" + vetoHit] };
+      return { score: 0, confidence: "none", vetoed: true, capped: false, reasons: ["否决:" + vetoHit] };
     }
 
     var tagHit = tags.map(text).filter(Boolean).find(function (tag) {
@@ -94,7 +105,9 @@
         });
     var nameGenre = RE.nameGenre.test(name);
     var nameWeak = !nameGenre && RE.nameWeak.test(name);
-    var serial = RE.serial.test(title);
+    var serialStrong = RE.serialStrong.test(title);
+    var serialWeak = !serialStrong && RE.serialWeak.test(title);
+    var serial = serialStrong || serialWeak;
     var trope = RE.trope.test(title);
     var longTitle = title.replace(/\s+/g, "").length >= 24;
     var signGenre = !!sign && !RE.sign.test(sign) && RE.signGenre.test(sign);
@@ -102,8 +115,7 @@
     var genreSignal = nameGenre || nameWeak || serial || !!tagGenre || trope || genreBase;
     var recap = RE.negative.test(title) || (!!sign && RE.negative.test(sign));
 
-    // AI 标识单独出现不代表漫剧：必须同时有漫剧/短剧特征才自动隐藏，
-    // 否则只打可疑角标（避免误杀 AI 绘画、AI 音乐、AI 活动等泛 AI 内容）
+    // AI 标识单独出现不代表漫剧：必须同时有漫剧/短剧特征才自动隐藏
     var aiScore = 0;
     if (RE.name.test(name)) aiScore += 4;
     if (RE.title.test(title)) aiScore += 4;
@@ -127,12 +139,12 @@
       score += 3;
       reasons.push("标签:" + tagHit);
     }
-    if (RE.genre.test(title)) {
-      score += 1;
-      reasons.push("体裁为漫剧/短剧");
-    }
 
     if (genreMode) {
+      if (genreBase) {
+        score += 2;
+        reasons.push("体裁为漫剧/短剧");
+      }
       if (nameGenre) {
         score += 3;
         reasons.push("账号名为剧场/短剧/漫剧类");
@@ -141,9 +153,12 @@
         score += 2;
         reasons.push("账号名为动漫/说漫类");
       }
-      if (serial) {
+      if (serialStrong) {
         score += 2;
-        reasons.push("标题为连载/全集模板");
+        reasons.push("标题为短剧连载/全集模板");
+      } else if (serialWeak) {
+        score += 1;
+        reasons.push("标题含集数/合集");
       }
       if (tagGenre) {
         score += 3;
@@ -153,7 +168,7 @@
         score += 1;
         reasons.push("标题含短剧题材");
       }
-      if (longTitle && (nameGenre || nameWeak || serial || trope)) {
+      if (longTitle && (nameGenre || nameWeak || serialStrong || trope)) {
         score += 1;
         reasons.push("长剧情标题");
       }
@@ -169,17 +184,33 @@
 
     if (recap) {
       score -= 4;
-      reasons.push("负向:解说/剪辑");
+      reasons.push("负向:解说/剪辑/熟肉");
     }
-    if (density >= 2) {
+    if (density >= 2 && (aiScore > 0 || nameGenre || nameWeak || serialStrong || trope || genreBase)) {
       score += 1;
       reasons.push("同 UP 本页出现 " + density + " 次");
     }
 
+    // 双门槛：分数够 4 也必须通过，否则只打可疑角标，不自动隐藏。
+    // 昵称/标签/简介自报 AI + 连载算强特征；只有标题带 AI + 普通单集
+    //（如「AI 全民制作人 第1集」）不算，必须再有明确的漫剧/短剧/题材信号。
+    var nameAi = RE.name.test(name);
+    var signAi = !!sign && RE.sign.test(sign);
+    var hasStrongDramaSignal =
+      nameGenre ||
+      !!tagGenre ||
+      genreBase ||
+      serialStrong ||
+      (nameWeak && trope) ||
+      (serialWeak && (nameAi || !!tagHit || signAi)) ||
+      (aiScore > 0 && trope);
     var capped = false;
     if (aiScore >= 3 && !genreSignal && score >= 4) {
       capped = true;
       reasons.push("仅 AI 标识，缺少漫剧/短剧特征");
+    } else if (!hasStrongDramaSignal && score >= 4) {
+      capped = true;
+      reasons.push("缺少漫剧强特征，仅标记待查");
     }
 
     var confidence = score >= 4 && !capped ? "high" : score >= 2 ? "medium" : "none";
@@ -234,7 +265,7 @@
         }).slice(0, 5)
       : [];
     return {
-      name: typeof raw.name === "string" ? raw.name.slice(0, 60) : "",
+      name: typeof raw.name === "string" ? cleanName(raw.name).slice(0, 60) : "",
       status: status,
       confidence: confidence,
       reasons: reasons,
@@ -361,7 +392,9 @@
       if (!item || typeof item !== "object") return fail(where + "不是对象");
       if (!Number.isSafeInteger(item.mid) || item.mid <= 0) return fail(where + " mid 非法");
       if (seen[item.mid]) continue;
-      if (typeof item.name !== "string" || item.name.length > 60) return fail(where + " name 非法");
+      if (typeof item.name !== "string") return fail(where + " name 非法");
+      var entryName = cleanName(item.name);
+      if (entryName.length > 60) return fail(where + " name 非法");
       var confidence = item.confidence === "confirmed" ? "confirmed" : item.confidence === "auto" ? "auto" : null;
       if (!confidence) return fail(where + " confidence 非法");
       var evidence = Array.isArray(item.evidence) ? item.evidence : [];
@@ -377,7 +410,7 @@
       seen[item.mid] = true;
       entries.push({
         mid: item.mid,
-        name: item.name,
+        name: entryName,
         confidence: confidence,
         evidence: evidence.slice(0, 5),
         samples: samples.slice(0, 5),
@@ -473,6 +506,7 @@
     DEFAULTS: DEFAULTS,
     DEFAULT_LIST_URL: DEFAULT_LIST_URL,
     RE: RE,
+    cleanName: cleanName,
     scoreCard: scoreCard,
     emptyData: emptyData,
     normalizeSettings: normalizeSettings,

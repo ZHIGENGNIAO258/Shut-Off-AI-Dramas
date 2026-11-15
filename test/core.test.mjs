@@ -24,10 +24,11 @@ test("教程类被硬否决", () => {
   assert.equal(result.score, 0);
 });
 
-test("连续剧集标题只到中置信，不自动隐藏", () => {
+test("普通单集不再白送 3 分：第5集只算弱连载", () => {
   const result = core.scoreCard({ name: "某频道", title: "狼皇归来 再起风云 第5集" });
-  assert.equal(result.confidence, "medium");
-  assert.equal(result.score, 3);
+  assert.equal(result.score, 1);
+  assert.equal(result.confidence, "none");
+  assert.ok(result.reasons.includes("标题含集数/合集"));
 });
 
 test("动漫类账号名 + 剧集推到高置信", () => {
@@ -69,6 +70,13 @@ test("AI 剧集类（剧集/上集）仍然判高置信", () => {
   assert.equal(result.capped, false);
 });
 
+test("AI 标题 + 普通单集仍不足以自动隐藏（AI 活动/短片系列）", () => {
+  const result = core.scoreCard({ name: "AI全民制作人", title: "我用 AI 做的动画 第1集" });
+  assert.ok(result.score >= 4);
+  assert.equal(result.confidence, "medium");
+  assert.equal(result.capped, true);
+});
+
 test("UP 简介自报 AI + 体裁判高置信", () => {
   const result = core.scoreCard({
     name: "某频道",
@@ -92,7 +100,7 @@ test("同 UP 密度会推到高置信", () => {
 
 test("关闭漫剧赛道模式后只剩 AI 信号", () => {
   const result = core.scoreCard({ name: "某剧场", title: "真彩票 第2集", genreMode: false });
-  assert.equal(result.score, 1);
+  assert.equal(result.score, 0);
   assert.equal(result.confidence, "none");
 });
 
@@ -120,7 +128,7 @@ test("账号名含「漫馆」按赛道账号处理", () => {
 test("解说/剪辑类账号被负向压回", () => {
   const result = core.scoreCard({ name: "某剧场", title: "第1集 解说" });
   assert.ok(result.score < 4);
-  assert.equal(result.confidence, "medium");
+  assert.equal(result.confidence, "none");
 });
 
 test("parseList 接受合法名单", () => {
@@ -241,4 +249,54 @@ test("normalizeData 丢弃脏数据并生成默认设置", () => {
   assert.equal(data.accounts[-1], undefined);
   assert.equal(data.whitelist[9], 5);
   assert.ok(data.tombstones[8]);
+});
+
+test("cleanName 去掉各种相对时间后缀并用于存储与名单解析", () => {
+  assert.equal(core.cleanName("小强凌凌柒 · 22小时前"), "小强凌凌柒");
+  assert.equal(core.cleanName("紙松烤肉王 · 昨天"), "紙松烤肉王");
+  assert.equal(core.cleanName("某UP · 3分钟前"), "某UP");
+  assert.equal(core.cleanName("某UP · 2025-11-14"), "某UP");
+  assert.equal(core.cleanName("某UP · 11-14"), "某UP");
+  assert.equal(core.cleanName("普通名字"), "普通名字");
+
+  const account = core.normalizeAccount({ name: "金屿动漫 · 10小时前", status: "hidden" });
+  assert.equal(account.name, "金屿动漫");
+  const parsed = core.parseList({
+    format: "bili-ai-slop",
+    version: 1,
+    entries: [{ mid: 1, name: "阿洛漫剧 · 23小时前", confidence: "confirmed" }]
+  });
+  assert.equal(parsed.entries[0].name, "阿洛漫剧");
+});
+
+test("报告里的误判账号不会被自动隐藏", () => {
+  const falsePositives = [
+    ["崩坏星穹铁道", "「乐子神智取米哈游」第二话 | 面试"],
+    ["高司令-速凌电竞", "【速凌宇宙】第二十七集：决战前夕！零号大坝有点太热闹了..."],
+    ["夏日幻听MCE", "【2027年4月/芳文社】摇曳露营 第四季 正式PV【MCE汉化组】"],
+    ["月影同学呀", "韩立才是关键棋子！紫灵找韩立为了什么？【凡人修仙传】199集杂谈解析"],
+    ["帝都狗小黑", "【废渊战鬼】第174话：路德大战布恩杜斯！竟然召唤出斑兽？！"],
+    ["不会就问TALK", "付鹏：AI让效率翻十倍，为什么AI漫剧开始亏钱了？"],
+    ["阿D逼逼叨", 'AI漫剧是2026年最大的"普通人陷阱"'],
+    ["赛博小doro", "从夯到拉锐评男生最喜欢的ai漫剧！"],
+    ["魔法少女春春酱 · 6小时前", "提欧奥特曼 第18集"],
+    ["WALNUT-核桃 · 8小时前", "【核桃汇总】令和假面骑士 主骑 冬季剧场版形态 变身必杀 把玩合集"]
+  ];
+  for (const [name, title] of falsePositives) {
+    const result = core.scoreCard({ name, title, density: 2 });
+    assert.notEqual(result.confidence, "high", name + " 不应被判高置信：" + result.reasons.join("|"));
+  }
+});
+
+test("报告保留的真漫剧账号仍然判高置信", () => {
+  const positives = [
+    ["OK新番漫剧", "【第1-6季】人人看不起的摸鱼住院医，随手救回绝症患者"],
+    ["太白雪动漫", "【第1-4季】劳资变成女人之后，站着都能抢朋友的活儿！"],
+    ["亿点点漫剧馆", "我昨天就已经辞职了，公司产线停了跟我有什么关系？"],
+    ["咩咩是个迷", "AI剧集《出马仙镇东北》上集【AI全民制作人】"],
+    ["xthdrv55179", "【1+5季】房术大全 一口气追完大结局，高清无雾，未删减原版"]
+  ];
+  for (const [name, title] of positives) {
+    assert.equal(core.scoreCard({ name, title, context: "漫剧" }).confidence, "high", name + " 应判高置信");
+  }
 });

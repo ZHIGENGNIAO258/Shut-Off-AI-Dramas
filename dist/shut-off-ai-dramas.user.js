@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         B 站 AI 漫剧屏蔽器
 // @namespace    https://github.com/ZHIGENGNIAO258/Shut-Off-AI-Dramas
-// @version      0.5.2
+// @version      0.6.0
 // @description  按账号名单与规则隐藏 B 站首页 / 搜索 / 动画分区里的 AI 漫剧卡片，名单可导出分享
 // @author       ZHIGENGNIAO258
 // @license      MIT
@@ -20,7 +20,7 @@
 // ==/UserScript==
 (function () {
   "use strict";
-  globalThis.AIS_VERSION = "0.5.2";
+  globalThis.AIS_VERSION = "0.6.0";
   globalThis.AIS_CSS = "/* B 站 AI 漫剧屏蔽器 · 界面样式（全部限定在 ais- 前缀内） */\n\n.ais-hidden {\n  display: none !important;\n}\n\n.ais-placeholder {\n  position: relative;\n  display: flex !important;\n  align-items: center;\n  justify-content: center;\n  min-height: 90px;\n  border: 1px dashed #fb7299;\n  border-radius: 8px;\n  background: #fff5f8;\n}\n\n.ais-placeholder > * {\n  display: none !important;\n}\n\n.ais-placeholder::before {\n  content: \"已屏蔽 · AI 漫剧\";\n  color: #fb7299;\n  font-size: 13px;\n}\n\n.ais-suspect {\n  position: relative;\n  outline: 2px dashed #fb7299;\n  outline-offset: -2px;\n}\n\n.ais-suspect::after {\n  content: \"?\";\n  position: absolute;\n  top: 6px;\n  right: 6px;\n  z-index: 20;\n  width: 18px;\n  height: 18px;\n  line-height: 18px;\n  text-align: center;\n  border-radius: 50%;\n  background: #fb7299;\n  color: #fff;\n  font-size: 12px;\n  font-weight: 700;\n  pointer-events: none;\n}\n\n.ais-marking .feed-card:hover,\n.ais-marking .video-list > div:hover {\n  outline: 2px solid #00aeec;\n  cursor: crosshair;\n}\n\n.ais-flash {\n  animation: ais-flash 0.9s ease;\n}\n\n@keyframes ais-flash {\n  0% {\n    box-shadow: 0 0 0 0 rgba(0, 174, 236, 0.8);\n  }\n  100% {\n    box-shadow: 0 0 0 12px rgba(0, 174, 236, 0);\n  }\n}\n\n/* 悬浮球 */\n.ais-fab {\n  position: fixed;\n  right: 20px;\n  bottom: 20px;\n  z-index: 2147483000;\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  padding: 8px 12px;\n  border: 0;\n  border-radius: 999px;\n  background: #fb7299;\n  color: #fff;\n  font: 600 13px/1.2 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  box-shadow: 0 6px 20px rgba(251, 114, 153, 0.4);\n  cursor: pointer;\n}\n\n.ais-fab:hover {\n  filter: brightness(1.05);\n}\n\n.ais-fab-hot {\n  background: #d94f7a;\n}\n\n.ais-fab-dot {\n  display: inline-block;\n  padding: 1px 4px;\n  border-radius: 4px;\n  background: rgba(255, 255, 255, 0.22);\n  font-size: 11px;\n}\n\n.ais-fab-count {\n  min-width: 16px;\n  text-align: center;\n}\n\n/* 面板 */\n.ais-panel {\n  position: fixed;\n  right: 20px;\n  bottom: 72px;\n  z-index: 2147483000;\n  display: flex;\n  flex-direction: column;\n  width: 380px;\n  max-width: calc(100vw - 32px);\n  max-height: min(72vh, 640px);\n  border-radius: 14px;\n  background: #fff;\n  color: #18191c;\n  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);\n  font: 13px/1.5 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  overflow: hidden;\n}\n\n.ais-panel[hidden],\n.ais-hover[hidden],\n.ais-modal[hidden],\n.ais-toast[hidden] {\n  display: none !important;\n}\n\n.ais-panel-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 12px 14px;\n  border-bottom: 1px solid #f1f2f3;\n}\n\n.ais-icon-btn {\n  border: 0;\n  background: transparent;\n  color: #9499a0;\n  font-size: 18px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.ais-tabs {\n  display: flex;\n  gap: 4px;\n  padding: 8px 10px;\n  border-bottom: 1px solid #f1f2f3;\n  background: #fafafa;\n}\n\n.ais-tab {\n  flex: 1;\n  padding: 6px 0;\n  border: 0;\n  border-radius: 8px;\n  background: transparent;\n  color: #61666d;\n  font: inherit;\n  cursor: pointer;\n}\n\n.ais-tab-active {\n  background: #fb7299;\n  color: #fff;\n}\n\n.ais-panel-body {\n  flex: 1;\n  padding: 12px 14px;\n  overflow: auto;\n}\n\n.ais-panel-foot {\n  padding: 8px 14px;\n  border-top: 1px solid #f1f2f3;\n  color: #9499a0;\n  font-size: 11px;\n}\n\n.ais-summary {\n  margin-bottom: 10px;\n  color: #61666d;\n}\n\n.ais-summary-num {\n  color: #fb7299;\n  font-size: 22px;\n  font-weight: 700;\n}\n\n.ais-empty {\n  margin: 12px 0;\n  color: #9499a0;\n  font-size: 12px;\n  line-height: 1.7;\n}\n\n.ais-row {\n  display: flex;\n  align-items: flex-start;\n  justify-content: space-between;\n  gap: 10px;\n  padding: 9px 0;\n  border-bottom: 1px solid #f4f5f6;\n}\n\n.ais-row-main {\n  min-width: 0;\n}\n\n.ais-row-title {\n  overflow: hidden;\n  color: #18191c;\n  font-weight: 600;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.ais-row-sub {\n  margin-top: 2px;\n  color: #9499a0;\n  font-size: 11px;\n  word-break: break-all;\n}\n\n.ais-row-side {\n  display: flex;\n  flex: 0 0 auto;\n  gap: 6px;\n}\n\n.ais-btn {\n  padding: 5px 9px;\n  border: 1px solid #e3e5e7;\n  border-radius: 7px;\n  background: #fff;\n  color: #18191c;\n  font: inherit;\n  cursor: pointer;\n  white-space: nowrap;\n}\n\n.ais-btn:hover {\n  border-color: #fb7299;\n  color: #fb7299;\n}\n\n.ais-btn-primary {\n  border-color: #fb7299;\n  background: #fb7299;\n  color: #fff;\n}\n\n.ais-btn-primary:hover {\n  background: #e45f86;\n  color: #fff;\n}\n\n.ais-btn-wide {\n  width: 100%;\n  margin-bottom: 8px;\n}\n\n.ais-toolbar {\n  display: flex;\n  gap: 8px;\n  margin-bottom: 8px;\n}\n\n.ais-sync {\n  display: flex;\n  gap: 8px;\n  margin-bottom: 10px;\n}\n\n.ais-input {\n  flex: 1;\n  min-width: 0;\n  padding: 6px 8px;\n  border: 1px solid #e3e5e7;\n  border-radius: 7px;\n  font: inherit;\n}\n\n.ais-input-mid {\n  flex: 0 0 118px;\n}\n\n.ais-list-tools,\n.ais-add-row {\n  display: flex;\n  gap: 6px;\n  margin-bottom: 6px;\n}\n\n.ais-sync-meta {\n  margin: 0 0 8px;\n  color: #9499a0;\n  font-size: 11px;\n  line-height: 1.5;\n}\n\n.ais-row-samples {\n  margin-top: 3px;\n}\n\n.ais-list-rows {\n  margin-top: 4px;\n}\n\n.ais-sample {\n  overflow: hidden;\n  color: #61666d;\n  font-size: 11px;\n  line-height: 1.5;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.ais-sample-empty {\n  color: #c0c4cc;\n}\n\n.ais-pager {\n  position: sticky;\n  bottom: -12px;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  margin-top: 6px;\n  padding: 8px 0 6px;\n  background: #fff;\n}\n\n.ais-pager-info {\n  color: #9499a0;\n  font-size: 11px;\n}\n\n.ais-btn[disabled] {\n  opacity: 0.45;\n  cursor: default;\n}\n\n.ais-btn[disabled]:hover {\n  border-color: #e3e5e7;\n  color: #18191c;\n}\n\n.ais-check {\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  padding: 8px 0;\n  border-bottom: 1px solid #f4f5f6;\n}\n\n.ais-check input {\n  margin-top: 3px;\n}\n\n.ais-check-note {\n  display: block;\n  color: #9499a0;\n  font-size: 11px;\n}\n\n/* 悬停工具条 */\n.ais-hover {\n  position: fixed;\n  z-index: 2147483001;\n  display: flex;\n  gap: 6px;\n  padding: 6px;\n  border-radius: 10px;\n  background: #18191c;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);\n}\n\n.ais-hover .ais-btn {\n  border-color: transparent;\n  background: #2b2d31;\n  color: #fff;\n  font-size: 12px;\n}\n\n.ais-hover .ais-btn:hover {\n  background: #fb7299;\n}\n\n.ais-hover .ais-btn-primary {\n  background: #fb7299;\n}\n\n/* 模态框 */\n.ais-modal {\n  position: fixed;\n  inset: 0;\n  z-index: 2147483002;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: rgba(0, 0, 0, 0.45);\n}\n\n.ais-modal-card {\n  width: 440px;\n  max-width: calc(100vw - 32px);\n  max-height: 80vh;\n  display: flex;\n  flex-direction: column;\n  border-radius: 14px;\n  background: #fff;\n  color: #18191c;\n  font: 13px/1.6 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  overflow: hidden;\n}\n\n.ais-modal-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 12px 16px;\n  border-bottom: 1px solid #f1f2f3;\n}\n\n.ais-modal-body {\n  flex: 1;\n  padding: 14px 16px;\n  overflow: auto;\n}\n\n.ais-modal-foot {\n  display: flex;\n  justify-content: flex-end;\n  gap: 8px;\n  padding: 12px 16px;\n  border-top: 1px solid #f1f2f3;\n}\n\n.ais-depth-line {\n  margin-bottom: 6px;\n  word-break: break-all;\n}\n\n/* Toast */\n.ais-toast {\n  position: fixed;\n  left: 50%;\n  bottom: 28px;\n  z-index: 2147483003;\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  padding: 9px 14px;\n  border-radius: 999px;\n  background: #18191c;\n  color: #fff;\n  font: 12px/1.4 system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  transform: translateX(-50%);\n  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);\n}\n\n.ais-toast-btn {\n  border: 0;\n  background: transparent;\n  color: #fb7299;\n  font: inherit;\n  font-weight: 600;\n  cursor: pointer;\n}\n";
 /* ---- src/core.js ---- */
 /* B 站 AI 漫剧屏蔽器 · 规则、名单校验与合并（纯函数，可单测） */
@@ -50,25 +50,36 @@
   };
 
   var RE = {
+    cleanSuffix: /\s*·\s*(?:刚刚|\d+\s*(?:秒|分钟|小时|天|周|个月|年)前|昨天|前天|(?:\d{4}-)?\d{1,2}-\d{1,2})\s*$/,
     name: /AIGC|AI\s*[\u4e00-\u9fa5]{0,4}?(?:漫剧|短剧|动漫|动画|剧场|影视|片场|创作|工作室)|人工智能/i,
     title: /AIGC|AI\s*[\u4e00-\u9fa5]{0,4}?(?:漫剧|短剧|生成|制作|绘制|动画|影视|原创|改编|视频)|人工智能\s*(?:生成|创作|制作)|生成式/i,
     sign: /AIGC|AI\s*[\u4e00-\u9fa5]{0,4}?(?:创作|动画|漫剧|短剧|视频|影视|生成|制作)|人工智能|生成式/i,
     tag: /^(?:AIGC|AI|人工智能|生成式|B站AI影视片场)$|AI\s*(?:动画|漫剧|短剧|视频|影视|作品|生成|片场)/i,
-    genre: /漫剧|短剧|剧集|剧场|合集|一口气看完|上集|下集|上篇|下篇|第\s*[0-9０-９一二三四五六七八九十百]+\s*[集话]/,
+    // 只认明确的漫剧/短剧体裁词；普通「第X集/合集」交给连载规则，避免双重计分
+    genre: /漫剧|短剧|动态漫|沙雕漫|剧集/,
     nameGenre: /剧场|短剧|漫剧|漫馆|制片厂|追漫|影业|好剧|番剧局|小剧场|漫剪|漫动画/,
     nameWeak: /动漫|漫画|说漫|看剧|看漫|推剧|放映厅|听书|漫社|漫城|漫听|漫梗|国漫/,
-    serial:
-      /(?:第\s*)?[\d一二三四五六七八九十百]+\s*(?:[-–—~～+＋至]\s*[\d一二三四五六七八九十百]+\s*)?[季集话]|EP\s*\d+|完整版|全集|荃集|成片|合集|大合集|大结局|一口气(?:看完|畅享|爽看|追完)|已完结|完结|超前(?:试看|点映)|独家限免|抢先(?:看|版)?|未删减|无删减|超清|勉费|免废/,
+    // 强短剧连载模板：跨季/跨集、防审黑话、一口气看完、未删减等营销号套路
+    serialStrong:
+      /(?:第\s*)?[\d一二三四五六七八九十百]+\s*[-–—~～+＋至]\s*[\d一二三四五六七八九十百]+\s*[季集]|荃集|勉费|免废|无雾|未删减|无删减|一口气(?:看完|畅享|爽看|追完)|超前(?:试看|点映)|独家限免|(?:\d+|一|两|三|四|五|六|七|八|九|十)\s*小时(?:合集|大合集|完结|爽看)/,
+    // 弱连载模板：正经番剧、游戏实况、漫画解说也会用，只给 1 分且不算强特征
+    serialWeak:
+      /(?:第\s*)?[\d一二三四五六七八九十百]+\s*[季集话]|EP\s*\d+|完整版|全集|成片|合集|大合集|大结局|已完结|完结|抢先(?:看|版)?|上集|下集|上篇|下篇/,
     tagGenre: /漫剧|短剧|动态漫|仿真人|AI真人|AI原创|AIGC|沙雕漫|2D漫|爆款短剧|热门漫剧|一口气看完漫剧|短剧推荐|短剧上新|AI动画|AI视频/i,
-    signGenre: /漫剧|短剧|剧场|漫馆|每日更新|追更|充电|官方账号/,
-    trope: /重生|穿越|逆袭|总裁|弃子|修仙|系统|师尊|复仇|千金|退婚|契约|闪婚|王妃|赘婿|战神|神医|龙王|真假千金|虐渣|团宠|爽文|男频|女频|首富|下山|反派|女主|男主|病娇|觉醒|异能|末世|末日|穿书|马甲|豪门|夫人|小姐|王爷|皇帝|太子|神豪|废土|丧尸|求生|绑定/,
-    official: /^(哔哩哔哩|腾讯视频|腾讯动漫|爱奇艺|爱奇艺动漫|优酷|优酷动漫|芒果TV|芒果动漫|快看漫画|央视|新华社|人民日报|CCTV)/,
+    signGenre: /漫剧|短剧|剧场|漫馆|每日更新|追更|充电/,
+    trope: /重生|穿越|逆袭|总裁|弃子|修仙|系统|师尊|复仇|千金|退婚|契约|闪婚|王妃|赘婿|战神|神医|龙王|真假千金|虐渣|团宠|爽文|男频|女频|首富|下山|反派|病娇|觉醒|异能|末世|末日|穿书|马甲|豪门|王爷|太子|神豪|废土|丧尸|求生|绑定/,
+    official: /^(哔哩哔哩|腾讯视频|腾讯动漫|爱奇艺|爱奇艺动漫|优酷|优酷动漫|芒果TV|芒果动漫|快看漫画|央视|新华社|人民日报|CCTV|崩坏星穹铁道|崩坏3|原神|绝区零|明日方舟|王者荣耀)/,
     vetoStrong:
-      /教程|教学|测评|评测|入门到|从零|实战|工具|软件|插件|脚本|编程|代码|部署|接口|API|工作流|ComfyUI|Stable\s*Diffusion|SDXL|Midjourney|可灵|即梦|海螺|Runway|Sora|Pika|豆包|通义|文心|混元|大模型|AI\s*绘画|AI\s*配音|开源|论文/i,
-    vetoTech: /解析|原理|技术|模型|指南|微调|LoRA/,
+      /教程|教学|测评|评测|入门到|从零|实战|工具|软件|插件|脚本|编程|代码|部署|接口|API|工作流|ComfyUI|Stable\s*Diffusion|SDXL|Midjourney|可灵|即梦|海螺|Runway|Sora|Pika|豆包|通义|文心|混元|大模型|AI\s*绘画|AI\s*配音|开源|论文|陷阱|骗局|割韭菜|亏钱|内幕|揭秘|从夯到拉|锐评/i,
+    vetoTech: /解析|原理|技术|模型|指南|微调|LoRA|行业|商业|访谈/,
     aiContext: /AIGC|AI|人工智能|生成式|生成/i,
-    negative: /影视解说|解说|影评|拉片|盘点|混剪|reaction|直播回放|复盘|速讲|讲解|剪辑/i
+    negative:
+      /影视解说|解说|影评|漫评|漫谈|杂谈|吐槽|拉片|盘点|混剪|reaction|直播回放|复盘|速讲|讲解|剪辑|汉化组|字幕组|中文字幕|熟肉|生肉|烤肉|官方PV|正式PV|先导PV|预告|剧场版|TV版|重映版|手书|MMD|广播剧|观影体|同人扶持计划|生日贺图|把玩|深度解析/i
   };
+
+  function cleanName(value) {
+    return typeof value === "string" ? value.replace(RE.cleanSuffix, "").trim() : "";
+  }
 
   function text(value) {
     return typeof value === "string" ? value.trim() : "";
@@ -86,7 +97,7 @@
    * @returns {{score:number,confidence:"high"|"medium"|"none",vetoed:boolean,reasons:string[]}}
    */
   function scoreCard(input) {
-    var name = text(input && input.name);
+    var name = cleanName(text(input && input.name));
     var title = text(input && input.title);
     var sign = text(input && input.sign);
     var tags = Array.isArray(input && input.tags) ? input.tags : [];
@@ -96,7 +107,7 @@
     var reasons = [];
 
     if (RE.official.test(name)) {
-      return { score: 0, confidence: "none", vetoed: false, reasons: ["官方账号白名单"] };
+      return { score: 0, confidence: "none", vetoed: false, capped: false, reasons: ["官方账号白名单"] };
     }
 
     var aiContext = RE.aiContext.test(title + " " + name);
@@ -106,7 +117,7 @@
       (aiContext &&
         ((title.match(RE.vetoTech) || [])[0] || (name.match(RE.vetoTech) || [])[0]));
     if (vetoHit) {
-      return { score: 0, confidence: "none", vetoed: true, reasons: ["否决:" + vetoHit] };
+      return { score: 0, confidence: "none", vetoed: true, capped: false, reasons: ["否决:" + vetoHit] };
     }
 
     var tagHit = tags.map(text).filter(Boolean).find(function (tag) {
@@ -119,7 +130,9 @@
         });
     var nameGenre = RE.nameGenre.test(name);
     var nameWeak = !nameGenre && RE.nameWeak.test(name);
-    var serial = RE.serial.test(title);
+    var serialStrong = RE.serialStrong.test(title);
+    var serialWeak = !serialStrong && RE.serialWeak.test(title);
+    var serial = serialStrong || serialWeak;
     var trope = RE.trope.test(title);
     var longTitle = title.replace(/\s+/g, "").length >= 24;
     var signGenre = !!sign && !RE.sign.test(sign) && RE.signGenre.test(sign);
@@ -127,8 +140,7 @@
     var genreSignal = nameGenre || nameWeak || serial || !!tagGenre || trope || genreBase;
     var recap = RE.negative.test(title) || (!!sign && RE.negative.test(sign));
 
-    // AI 标识单独出现不代表漫剧：必须同时有漫剧/短剧特征才自动隐藏，
-    // 否则只打可疑角标（避免误杀 AI 绘画、AI 音乐、AI 活动等泛 AI 内容）
+    // AI 标识单独出现不代表漫剧：必须同时有漫剧/短剧特征才自动隐藏
     var aiScore = 0;
     if (RE.name.test(name)) aiScore += 4;
     if (RE.title.test(title)) aiScore += 4;
@@ -152,12 +164,12 @@
       score += 3;
       reasons.push("标签:" + tagHit);
     }
-    if (RE.genre.test(title)) {
-      score += 1;
-      reasons.push("体裁为漫剧/短剧");
-    }
 
     if (genreMode) {
+      if (genreBase) {
+        score += 2;
+        reasons.push("体裁为漫剧/短剧");
+      }
       if (nameGenre) {
         score += 3;
         reasons.push("账号名为剧场/短剧/漫剧类");
@@ -166,9 +178,12 @@
         score += 2;
         reasons.push("账号名为动漫/说漫类");
       }
-      if (serial) {
+      if (serialStrong) {
         score += 2;
-        reasons.push("标题为连载/全集模板");
+        reasons.push("标题为短剧连载/全集模板");
+      } else if (serialWeak) {
+        score += 1;
+        reasons.push("标题含集数/合集");
       }
       if (tagGenre) {
         score += 3;
@@ -178,7 +193,7 @@
         score += 1;
         reasons.push("标题含短剧题材");
       }
-      if (longTitle && (nameGenre || nameWeak || serial || trope)) {
+      if (longTitle && (nameGenre || nameWeak || serialStrong || trope)) {
         score += 1;
         reasons.push("长剧情标题");
       }
@@ -194,17 +209,33 @@
 
     if (recap) {
       score -= 4;
-      reasons.push("负向:解说/剪辑");
+      reasons.push("负向:解说/剪辑/熟肉");
     }
-    if (density >= 2) {
+    if (density >= 2 && (aiScore > 0 || nameGenre || nameWeak || serialStrong || trope || genreBase)) {
       score += 1;
       reasons.push("同 UP 本页出现 " + density + " 次");
     }
 
+    // 双门槛：分数够 4 也必须通过，否则只打可疑角标，不自动隐藏。
+    // 昵称/标签/简介自报 AI + 连载算强特征；只有标题带 AI + 普通单集
+    //（如「AI 全民制作人 第1集」）不算，必须再有明确的漫剧/短剧/题材信号。
+    var nameAi = RE.name.test(name);
+    var signAi = !!sign && RE.sign.test(sign);
+    var hasStrongDramaSignal =
+      nameGenre ||
+      !!tagGenre ||
+      genreBase ||
+      serialStrong ||
+      (nameWeak && trope) ||
+      (serialWeak && (nameAi || !!tagHit || signAi)) ||
+      (aiScore > 0 && trope);
     var capped = false;
     if (aiScore >= 3 && !genreSignal && score >= 4) {
       capped = true;
       reasons.push("仅 AI 标识，缺少漫剧/短剧特征");
+    } else if (!hasStrongDramaSignal && score >= 4) {
+      capped = true;
+      reasons.push("缺少漫剧强特征，仅标记待查");
     }
 
     var confidence = score >= 4 && !capped ? "high" : score >= 2 ? "medium" : "none";
@@ -259,7 +290,7 @@
         }).slice(0, 5)
       : [];
     return {
-      name: typeof raw.name === "string" ? raw.name.slice(0, 60) : "",
+      name: typeof raw.name === "string" ? cleanName(raw.name).slice(0, 60) : "",
       status: status,
       confidence: confidence,
       reasons: reasons,
@@ -386,7 +417,9 @@
       if (!item || typeof item !== "object") return fail(where + "不是对象");
       if (!Number.isSafeInteger(item.mid) || item.mid <= 0) return fail(where + " mid 非法");
       if (seen[item.mid]) continue;
-      if (typeof item.name !== "string" || item.name.length > 60) return fail(where + " name 非法");
+      if (typeof item.name !== "string") return fail(where + " name 非法");
+      var entryName = cleanName(item.name);
+      if (entryName.length > 60) return fail(where + " name 非法");
       var confidence = item.confidence === "confirmed" ? "confirmed" : item.confidence === "auto" ? "auto" : null;
       if (!confidence) return fail(where + " confidence 非法");
       var evidence = Array.isArray(item.evidence) ? item.evidence : [];
@@ -402,7 +435,7 @@
       seen[item.mid] = true;
       entries.push({
         mid: item.mid,
-        name: item.name,
+        name: entryName,
         confidence: confidence,
         evidence: evidence.slice(0, 5),
         samples: samples.slice(0, 5),
@@ -498,6 +531,7 @@
     DEFAULTS: DEFAULTS,
     DEFAULT_LIST_URL: DEFAULT_LIST_URL,
     RE: RE,
+    cleanName: cleanName,
     scoreCard: scoreCard,
     emptyData: emptyData,
     normalizeSettings: normalizeSettings,
@@ -529,6 +563,7 @@
   }
 
   function cleanName(value) {
+    if (core && typeof core.cleanName === "function") return core.cleanName(value);
     return value.replace(/\s*·\s*\d{1,2}-\d{1,2}\s*$/, "").trim();
   }
 

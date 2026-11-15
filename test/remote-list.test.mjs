@@ -21,11 +21,11 @@ function makeStore(seed) {
   });
 }
 
-test("仓库订阅名单：221 条且全部为人工确认，默认地址指向仓库", () => {
+test("仓库订阅名单：244 条且全部为人工确认，默认地址指向仓库", () => {
   const parsed = core.parseList(fs.readFileSync(listFile, "utf8"));
   assert.equal(parsed.ok, true, parsed.error);
-  assert.equal(parsed.entries.length, 221);
-  assert.equal(parsed.entries.filter((entry) => entry.confidence === "confirmed").length, 221);
+  assert.equal(parsed.entries.length, 244);
+  assert.equal(parsed.entries.filter((entry) => entry.confidence === "confirmed").length, 244);
   assert.equal(
     core.DEFAULTS.listUrl,
     "https://raw.githubusercontent.com/ZHIGENGNIAO258/Shut-Off-AI-Dramas/main/list/ai-slop.json"
@@ -70,7 +70,7 @@ test("同步远程名单：只新增/转正，不删除本地账号、不改设�
   const before = store.settings().listUrl;
   const result = store.applyRemote(parsed.entries, false);
 
-  assert.equal(result.added, 219, "除本地已有的 2 条外，其余 219 条应新增");
+  assert.equal(result.added, 242, "除本地已有的 2 条外，其余 242 条应新增");
   assert.equal(result.upgraded, 1, "本地待确认的同 mid 应转正");
   assert.equal(store.getAccount(42).name, "本地独有号", "本地账号不能被删除");
   assert.equal(store.getAccount(target.mid).confidence, "manual", "本地人工记录不能被覆盖");
@@ -79,9 +79,10 @@ test("同步远程名单：只新增/转正，不删除本地账号、不改设�
   assert.equal(store.getAccount(pendingMid).confidence, "confirmed");
   assert.equal(store.settings().listUrl, before, "同步不改订阅地址");
   assert.equal(store.settings().genreMode, true, "同步不关闭本地漫剧规则");
-  assert.equal(store.data.meta.lastSyncCount, 221);
+  assert.equal(store.data.meta.lastSyncCount, 244);
 
   // 本地规则仍是纯函数，同步后照样生效
   const verdict = core.scoreCard({ name: "熊猫小圣AIGC", title: "《潮尸》第一集" });
   assert.equal(verdict.confidence, "high");
 });
+
