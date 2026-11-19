@@ -9,3 +9,4 @@ import "./integration.test.mjs";
 import "./home-cards.test.mjs";
 import "./list-ui.test.mjs";
 import "./remote-list.test.mjs";
+import "./mode.test.mjs";

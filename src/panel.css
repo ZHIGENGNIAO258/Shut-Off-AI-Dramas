@@ -206,6 +206,99 @@
   line-height: 1.7;
 }
 
+/* 屏蔽方式：设置页最上方的两个大选项 */
+.ais-mode {
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid #f1d3dd;
+  border-radius: 12px;
+  background: #fff7fa;
+}
+
+.ais-mode-title {
+  margin-bottom: 8px;
+  color: #18191c;
+  font-weight: 700;
+}
+
+.ais-mode-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ais-mode-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid #e3e5e7;
+  border-radius: 10px;
+  background: #fff;
+  color: #18191c;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ais-mode-option:hover {
+  border-color: #fb7299;
+}
+
+.ais-mode-active {
+  border-color: #fb7299;
+  background: #fb7299;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(251, 114, 153, 0.28);
+}
+
+.ais-mode-name {
+  font-weight: 700;
+}
+
+.ais-mode-sub {
+  color: #9499a0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.ais-mode-active .ais-mode-sub {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.ais-mode-hint {
+  margin: 10px 0 0;
+  color: #61666d;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.ais-section-title {
+  margin: 4px 0 2px;
+  color: #9499a0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.ais-mode-tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #fff0f5;
+  color: #d94f7a;
+  font-size: 11px;
+  vertical-align: 2px;
+}
+
+.ais-check-disabled {
+  opacity: 0.5;
+}
+
+.ais-check-disabled input {
+  cursor: not-allowed;
+}
+
 .ais-row {
   display: flex;
   align-items: flex-start;

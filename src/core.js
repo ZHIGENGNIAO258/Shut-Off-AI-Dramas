@@ -15,6 +15,8 @@
   var DEFAULT_LIST_URL = "https://raw.githubusercontent.com/ZHIGENGNIAO258/Shut-Off-AI-Dramas/main/list/ai-slop.json";
 
   var DEFAULTS = {
+    // rules：规则自动识别；list：只按名单屏蔽
+    mode: "rules",
     autoHideHigh: true,
     mediumBadge: true,
     showPlaceholder: false,
@@ -242,7 +244,12 @@
         out[key] = def;
       }
     });
+    if (out.mode !== "rules" && out.mode !== "list") out.mode = "rules";
     return out;
+  }
+
+  function isValidMode(value) {
+    return value === "rules" || value === "list";
   }
 
   function normalizeAccount(raw) {
@@ -514,6 +521,7 @@
     scoreCard: scoreCard,
     emptyData: emptyData,
     normalizeSettings: normalizeSettings,
+    isValidMode: isValidMode,
     normalizeData: normalizeData,
     normalizeAccount: normalizeAccount,
     parseList: parseList,

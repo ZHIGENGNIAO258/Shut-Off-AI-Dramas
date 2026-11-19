@@ -147,6 +147,17 @@
     }
 
     var account = store.getAccount(mid);
+
+    // 仅名单模式：不跑规则、不读简介/标签，只看名单里是否已经有这个账号
+    if (settings.mode === "list") {
+      if (account && core.shouldHideAccount(account)) {
+        dom.hide(record.wrapper, settings.showPlaceholder);
+      } else {
+        dom.show(record.wrapper);
+      }
+      return;
+    }
+
     if (!record.title) {
       var reread = surface.read(record.wrapper);
       if (reread && reread.title) record.title = reread.title;
@@ -456,7 +467,13 @@
 
   function saveSetting(name, value) {
     if (!store.setSetting(name, value)) return;
-    if (name === "autoHideHigh" || name === "mediumBadge" || name === "showPlaceholder" || name === "genreMode") {
+    if (
+      name === "mode" ||
+      name === "autoHideHigh" ||
+      name === "mediumBadge" ||
+      name === "showPlaceholder" ||
+      name === "genreMode"
+    ) {
       applyAll();
     }
     if (ui) ui.refresh();

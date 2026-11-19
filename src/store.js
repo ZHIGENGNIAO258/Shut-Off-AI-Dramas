@@ -69,6 +69,7 @@
       if (!Object.prototype.hasOwnProperty.call(core.DEFAULTS, name)) return false;
       var def = core.DEFAULTS[name];
       if (typeof value !== typeof def) return false;
+      if (name === "mode" && !core.isValidMode(value)) return false;
       if (typeof def === "string" && value.length > 500) return false;
       data.settings[name] = value;
       save();

@@ -82,9 +82,17 @@ await new Promise((resolve) => setTimeout(resolve, 120));
 dom.window.document.getElementById("ais-fab").click();
 await new Promise((resolve) => setTimeout(resolve, 30));
 
+// AIS_DEMO_TAB=settings 可让预览停在设置页（截图用）
+const demoTab = process.env.AIS_DEMO_TAB;
+if (demoTab) {
+  const target = [...dom.window.document.querySelectorAll(".ais-tab")].find((btn) => btn.dataset.tab === demoTab);
+  if (target) target.click();
+  await new Promise((resolve) => setTimeout(resolve, 30));
+}
+
 const outDir = path.join(root, "docs");
 fs.mkdirSync(outDir, { recursive: true });
-const outFile = path.join(outDir, "demo.html");
+const outFile = process.env.AIS_DEMO_OUT ? path.resolve(process.env.AIS_DEMO_OUT) : path.join(outDir, "demo.html");
 fs.writeFileSync(outFile, dom.serialize(), "utf8");
 dom.window.close();
 console.log(`wrote ${path.relative(root, outFile)}`);

@@ -311,3 +311,16 @@ test("拉黑字段会被归一化保留，旧数据默认未拉黑", () => {
   const remote = core.mergeAccounts({}, [{ mid: 11, name: "x", confidence: "confirmed", evidence: [], samples: [] }], {});
   assert.equal(remote.accounts[11].blocked, false);
 });
+
+test("屏蔽方式默认按规则自动识别，非法值回退到 rules", () => {
+  assert.equal(core.DEFAULTS.mode, "rules");
+  assert.equal(core.isValidMode("rules"), true);
+  assert.equal(core.isValidMode("list"), true);
+  assert.equal(core.isValidMode("auto"), false);
+
+  assert.equal(core.normalizeSettings({}).mode, "rules");
+  assert.equal(core.normalizeSettings({ mode: "list" }).mode, "list");
+  assert.equal(core.normalizeSettings({ mode: "list", autoHideHigh: false }).autoHideHigh, false, "切换模式不影响其它开关");
+  assert.equal(core.normalizeSettings({ mode: "by-rules" }).mode, "rules", "未知模式回退到 rules");
+  assert.equal(core.normalizeSettings({ mode: 123 }).mode, "rules", "类型不对也回退");
+});

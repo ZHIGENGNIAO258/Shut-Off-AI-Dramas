@@ -178,3 +178,18 @@ test("拉黑状态按 mid 保存，取消后清除时间戳", () => {
   assert.equal(store.getAccount(700).blockedAt, 0);
   assert.equal(store.setBlocked(999, true), false, "不存在的账号返回 false");
 });
+
+test("模式设置可保存，非法模式拒绝写入", () => {
+  const store = makeStore();
+  assert.equal(store.settings().mode, "rules", "默认按规则自动识别");
+
+  assert.equal(store.setSetting("mode", "list"), true);
+  assert.equal(store.settings().mode, "list");
+  assert.equal(store.setSetting("mode", "auto"), false, "未知模式拒绝写入");
+  assert.equal(store.settings().mode, "list", "拒绝后保持原值");
+
+  store.setSetting("autoHideHigh", false);
+  assert.equal(store.settings().autoHideHigh, false, "模式与其它开关互不影响");
+  assert.equal(store.setSetting("mode", "rules"), true);
+  assert.equal(store.settings().autoHideHigh, false, "切回规则模式不重置其它开关");
+});

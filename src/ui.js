@@ -257,6 +257,9 @@
       var head = make("div", "ais-summary");
       head.appendChild(make("span", "ais-summary-num", String(hidden.length)));
       head.appendChild(make("span", "", " 条已隐藏 / 本页共 " + state.records.size + " 条视频"));
+      head.appendChild(
+        make("span", "ais-mode-tag", store.settings().mode === "list" ? "仅名单" : "规则 + 名单")
+      );
       panelBody.appendChild(head);
 
       if (state.surface.id === "search" && state.records.size > 0) {
@@ -321,8 +324,19 @@
         return account.status === "pending" || account.confidence === "auto";
       });
       if (pending.length === 0) {
-        panelBody.appendChild(emptyHint("没有待确认的账号。规则自动命中的账号会先出现在这里。"));
+        panelBody.appendChild(
+          emptyHint(
+            store.settings().mode === "list"
+              ? "当前是仅名单模式，不会新增待确认账号。名单在「名单」页维护。"
+              : "没有待确认的账号。规则自动命中的账号会先出现在这里。"
+          )
+        );
         return;
+      }
+      if (store.settings().mode === "list") {
+        panelBody.appendChild(
+          make("p", "ais-empty", "当前是仅名单模式：不会再新增待确认账号，下面这些是切换前留下的，可确认或标为误伤。")
+        );
       }
       panelBody.appendChild(
         button("全部确认（加入名单）", "ais-btn-wide ais-btn-primary", function () {
@@ -719,6 +733,45 @@
 
     function renderSettings() {
       var settings = store.settings();
+      var listMode = settings.mode === "list";
+
+      // 屏蔽方式放在最上面：这是「要不要自动识别」的总开关
+      var modeBox = make("div", "ais-mode");
+      modeBox.appendChild(make("div", "ais-mode-title", "屏蔽方式"));
+      var modeGrid = make("div", "ais-mode-options");
+      [
+        ["rules", "按规则自动识别", "规则命中的账号先隐藏并进入待确认，再逐步沉淀成名单"],
+        ["list", "仅按名单屏蔽", "只隐藏名单里的账号，不跑规则、不读简介和标签"]
+      ].forEach(function (opt) {
+        var active = settings.mode === opt[0];
+        var btn = make("button", "ais-mode-option" + (active ? " ais-mode-active" : ""));
+        btn.type = "button";
+        btn.dataset.mode = opt[0];
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+        btn.appendChild(make("span", "ais-mode-name", opt[1]));
+        btn.appendChild(make("span", "ais-mode-sub", opt[2]));
+        btn.addEventListener("click", function () {
+          if (store.settings().mode === opt[0]) return;
+          actions.saveSetting("mode", opt[0]);
+          toast(opt[0] === "list" ? "已切换为仅按名单屏蔽" : "已切换为按规则自动识别");
+          render();
+        });
+        modeGrid.appendChild(btn);
+      });
+      modeBox.appendChild(modeGrid);
+      modeBox.appendChild(
+        make(
+          "p",
+          "ais-mode-hint",
+          listMode
+            ? "当前：仅名单。名单里的账号照常隐藏，规则不再新增待确认，也不读取简介/标签。"
+            : "当前：规则 + 名单。名单之外，规则也会自动清掉明显的一批，其余进待确认。"
+        )
+      );
+      panelBody.appendChild(modeBox);
+
+      panelBody.appendChild(make("div", "ais-section-title", "规则细节"));
+
       var defs = [
         ["autoHideHigh", "自动隐藏高置信结果", "昵称/标题/简介/标签明确写了 AI 的账号"],
         ["genreMode", "识别漫剧/短剧生产号", "剧场/短剧/漫剧类账号 + 连载模板；会包含非 AI 动态漫"],
@@ -728,10 +781,11 @@
         ["remoteList", "启用远程名单", "只隐藏；远程条目默认只信任人工确认的"]
       ];
       defs.forEach(function (def) {
-        var label = make("label", "ais-check");
+        var label = make("label", "ais-check" + (listMode ? " ais-check-disabled" : ""));
         var input = doc.createElement("input");
         input.type = "checkbox";
         input.checked = !!settings[def[0]];
+        input.disabled = listMode;
         input.addEventListener("change", function () {
           actions.saveSetting(def[0], input.checked);
         });
@@ -741,6 +795,11 @@
         label.appendChild(textWrap);
         panelBody.appendChild(label);
       });
+      if (listMode) {
+        panelBody.appendChild(
+          make("p", "ais-empty", "仅名单模式下这些规则开关不生效；切回「按规则自动识别」后会按原有设置恢复。")
+        );
+      }
       panelBody.appendChild(
         button("恢复全部（清空白名单）", "", function () {
           var whitelist = store.data.whitelist;
@@ -765,6 +824,7 @@
       var version = (typeof globalThis !== "undefined" && globalThis.AIS_VERSION) || "";
       panelFoot.textContent =
         (version ? "v" + version + " · " : "") +
+        (store.settings().mode === "list" ? "仅名单 · " : "") +
         "名单 " +
         counts.hidden +
         " · 待确认 " +
